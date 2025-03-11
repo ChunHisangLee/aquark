@@ -4,9 +4,14 @@ import com.jack.aquark.dto.RawDataWrapper;
 import com.jack.aquark.dto.Summaries;
 import com.jack.aquark.service.SensorDataService;
 import java.time.LocalDateTime;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(
+        name = "CRUD REST APIs for User",
+        description = "CRUD REST APIs to CREATE, UPDATE, FETCH AND DELETE")
 @RestController
 @RequestMapping("/api/sensor")
 public class SensorDataController {
