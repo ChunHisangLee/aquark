@@ -6,8 +6,7 @@ import lombok.*;
 
 @Entity
 @Table(name = "sensor_data")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -19,20 +18,28 @@ public class SensorData {
   private String stationId;
 
   private LocalDateTime obsTime;
-  // v1 鋰電池電壓
+
+  private String csq;
+
+  // 電壓
   private Double v1;
-  // v5 太陽能板 1 電壓
+  private Double v2;
+  private Double v3;
+  private Double v4;
   private Double v5;
-  // v6 太陽能板 2 電壓
   private Double v6;
-  // rh 濕度%
+  private Double v7;
+
+  // 濕度%與溫度℃
   private Double rh;
-  // tx 溫度℃
   private Double tx;
-  // echo 水位空高 m
+
+  // 水位空高
   private Double echo;
-  // rain_d 日累積雨量 mm
+
+  // 日累積雨量
   private Double rainD;
+
   // speed 表面流速 m/s
   private Double speed;
 }

@@ -2,31 +2,45 @@ package com.jack.aquark.controller;
 
 import com.jack.aquark.dto.RawDataWrapper;
 import com.jack.aquark.dto.Summaries;
+import com.jack.aquark.entity.SensorData;
 import com.jack.aquark.service.SensorDataService;
 import java.time.LocalDateTime;
-
-import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
+import lombok.AllArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(
-        name = "CRUD REST APIs for User",
-        description = "CRUD REST APIs to CREATE, UPDATE, FETCH AND DELETE")
 @RestController
 @RequestMapping("/api/sensor")
+@AllArgsConstructor
 public class SensorDataController {
 
   private final SensorDataService sensorDataService;
 
-  public SensorDataController(SensorDataService sensorDataService) {
-    this.sensorDataService = sensorDataService;
+  /** 1. Receive entire JSON with "raw" array */
+  @GetMapping("/fetchAndUpload")
+  public String fetchAndUploadRawData(@RequestParam String stationId) {
+    // Compose URL dynamically using the provided stationId
+    String url = "https://app.aquark.com.tw/api/raw/Angle2024/" + stationId;
+    RawDataWrapper wrapper = sensorDataService.fetchRawDataFromUrl(url);
+    sensorDataService.saveRawData(wrapper);
+    return "Fetched and saved successfully for station: " + stationId;
   }
 
-  /** 1. Receive entire JSON with "raw" array */
-  @PostMapping("/upload")
-  public String uploadRawData(@RequestBody RawDataWrapper wrapper) {
-    sensorDataService.saveRawData(wrapper);
-    return "Uploaded & saved successfully";
+  /** 查詢指定時間區間內的數據 */
+  @GetMapping("/search")
+  public List<SensorData> searchSensorData(
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end) {
+    return sensorDataService.getSensorDataBetween(start, end);
+  }
+
+  /** 查詢每小時平均（以 v1 為例） */
+  @GetMapping("/statistics/hourly")
+  public List<Object[]> getHourlyStats(
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end) {
+    return sensorDataService.getHourlyAverage(start, end);
   }
 
   /**
@@ -35,9 +49,8 @@ public class SensorDataController {
    */
   @GetMapping("/summaries")
   public Summaries getSummaries(
-      @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-          LocalDateTime start,
-      @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end) {
     return sensorDataService.getSummaries(start, end);
   }
 }
