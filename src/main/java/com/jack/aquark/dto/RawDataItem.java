@@ -1,21 +1,29 @@
 package com.jack.aquark.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Data;
 
 @Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class RawDataItem {
-
   private String stationId;
-  private String obsTime; // We'll parse it into LocalDateTime manually
-  private String cSQ;
+  private String obsTime;
+  @JsonProperty("CSQ")
+  private String csq;
   private Sensor sensor;
   private Double rainD;
 
   @Data
   public static class Sensor {
+    @JsonProperty("Volt")
     private Volt volt;
+    @JsonProperty("StickTxRh")
     private StickTxRh stickTxRh;
+    @JsonProperty("Ultrasonic_Level")
     private UltrasonicLevel ultrasonicLevel;
+    @JsonProperty("Water_speed_aquark")
     private WaterSpeedAquark waterSpeedAquark;
   }
 

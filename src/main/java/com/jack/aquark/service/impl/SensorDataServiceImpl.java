@@ -1,6 +1,5 @@
 package com.jack.aquark.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jack.aquark.dto.RawDataItem;
 import com.jack.aquark.dto.RawDataWrapper;
@@ -10,7 +9,6 @@ import com.jack.aquark.repository.SensorDataRepository;
 import com.jack.aquark.service.SensorDataService;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Iterator;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,49 +23,67 @@ import org.springframework.web.client.RestTemplate;
 public class SensorDataServiceImpl implements SensorDataService {
   private final SensorDataRepository sensorDataRepository;
   private final ObjectMapper objectMapper;
+  private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
   @Override
   public void fetchAndSaveSensorData(String apiUrl) {
-    RestTemplate restTemplate = new RestTemplate();
-    ResponseEntity<String> response = restTemplate.getForEntity(apiUrl, String.class);
-
     try {
-      JsonNode root = objectMapper.readTree(response.getBody());
-      JsonNode rawArray = root.path("raw");
+      RawDataWrapper wrapper = fetchRawDataFromUrl(apiUrl);
+      if (wrapper != null && wrapper.getRaw() != null) {
 
-      if (rawArray.isArray()) {
-        Iterator<JsonNode> elements = rawArray.elements();
-
-        while (elements.hasNext()) {
-          JsonNode node = elements.next();
-          SensorData data = parseSensorData(node);
-          sensorDataRepository.save(data);
-          // 檢查是否超過告警值 (可呼叫 AlarmThresholdService 檢查)
+        for (RawDataItem item : wrapper.getRaw()) {
+          try {
+            SensorData data = parseSensorData(item);
+            sensorDataRepository.save(data);
+          } catch (Exception e) {
+            log.error("Error Fetch And Save Sensor Data: {}", item, e);
+          }
         }
       }
     } catch (Exception e) {
-      log.error("Error fetch And Save Sensor Data", e);
+      log.error("Error fetching and saving sensor data from URL: {}", apiUrl, e);
     }
   }
 
-  private SensorData parseSensorData(JsonNode node) {
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    return SensorData.builder()
-        .stationId(node.path("station_id").asText())
-        .obsTime(LocalDateTime.parse(node.path("obs_time").asText(), formatter))
-        .csq(node.path("CSQ").asText())
-        .v1(node.path("sensor").path("Volt").path("v1").asDouble())
-        .v2(node.path("sensor").path("Volt").path("v2").asDouble())
-        .v3(node.path("sensor").path("Volt").path("v3").asDouble())
-        .v4(node.path("sensor").path("Volt").path("v4").asDouble())
-        .v5(node.path("sensor").path("Volt").path("v5").asDouble())
-        .v6(node.path("sensor").path("Volt").path("v6").asDouble())
-        .v7(node.path("sensor").path("Volt").path("v7").asDouble())
-        .rh(node.path("sensor").path("StickTxRh").path("rh").asDouble())
-        .tx(node.path("sensor").path("StickTxRh").path("tx").asDouble())
-        .echo(node.path("sensor").path("Ultrasonic_Level").path("echo").asDouble())
-        .rainD(node.path("rain_d").asDouble())
-        .build();
+  private SensorData parseSensorData(RawDataItem item) {
+    LocalDateTime obsTime = LocalDateTime.parse(item.getObsTime(), formatter);
+    SensorData.SensorDataBuilder builder =
+        SensorData.builder()
+            .stationId(item.getStationId())
+            .obsTime(obsTime)
+            .csq(item.getCsq())
+            .rainD(item.getRainD());
+
+    populateSensorFields(item.getSensor(), builder);
+    return builder.build();
+  }
+
+  private void populateSensorFields(
+      RawDataItem.Sensor sensor, SensorData.SensorDataBuilder builder) {
+    if (sensor != null) {
+      if (sensor.getVolt() != null) {
+        builder
+            .v1(sensor.getVolt().getV1())
+            .v2(sensor.getVolt().getV2())
+            .v3(sensor.getVolt().getV3())
+            .v4(sensor.getVolt().getV4())
+            .v5(sensor.getVolt().getV5())
+            .v6(sensor.getVolt().getV6())
+            .v7(sensor.getVolt().getV7());
+      }
+      if (sensor.getStickTxRh() != null) {
+        builder.rh(sensor.getStickTxRh().getRh()).tx(sensor.getStickTxRh().getTx());
+      }
+      if (sensor.getUltrasonicLevel() != null) {
+        builder.echo(sensor.getUltrasonicLevel().getEcho());
+      }
+      if (sensor.getWaterSpeedAquark() != null) {
+        Double speed = sensor.getWaterSpeedAquark().getSpeed();
+        if (speed != null) {
+          builder.speed(Math.abs(speed));
+        }
+      }
+    }
   }
 
   @Override
@@ -76,78 +92,24 @@ public class SensorDataServiceImpl implements SensorDataService {
       return;
     }
 
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
     for (RawDataItem item : wrapper.getRaw()) {
-      LocalDateTime obsTime;
-
       try {
-        obsTime = LocalDateTime.parse(item.getObsTime(), formatter);
+        LocalDateTime obsTime = LocalDateTime.parse(item.getObsTime(), formatter);
+
+        SensorData.SensorDataBuilder builder =
+            SensorData.builder()
+                .stationId(item.getStationId())
+                .obsTime(obsTime)
+                .csq(item.getCsq())
+                .rainD(item.getRainD());
+
+        populateSensorFields(item.getSensor(), builder);
+
+        SensorData sensorData = builder.build();
+        sensorDataRepository.save(sensorData);
       } catch (Exception e) {
-        log.error("Error saving Raw Data: {} for item: {}", e, item);
-        continue;
+        log.error("Error Saving Raw Data: {}", item, e);
       }
-
-      Double v1 = null, v2 = null, v3 = null, v4 = null, v5 = null, v6 = null, v7 = null;
-
-      if (item.getSensor() != null && item.getSensor().getVolt() != null) {
-        v1 = item.getSensor().getVolt().getV1();
-        v2 = item.getSensor().getVolt().getV2();
-        v3 = item.getSensor().getVolt().getV3();
-        v4 = item.getSensor().getVolt().getV4();
-        v5 = item.getSensor().getVolt().getV5();
-        v6 = item.getSensor().getVolt().getV6();
-        v7 = item.getSensor().getVolt().getV7();
-      }
-
-      Double rh = null, tx = null;
-
-      if (item.getSensor() != null && item.getSensor().getStickTxRh() != null) {
-        if (item.getSensor().getStickTxRh().getRh() != null) {
-          rh = item.getSensor().getStickTxRh().getRh();
-        }
-
-        tx = item.getSensor().getStickTxRh().getTx();
-      }
-
-      Double echo = null;
-
-      if (item.getSensor() != null && item.getSensor().getUltrasonicLevel() != null) {
-        echo = item.getSensor().getUltrasonicLevel().getEcho();
-      }
-
-      Double speed = null;
-
-      if (item.getSensor() != null && item.getSensor().getWaterSpeedAquark() != null) {
-        speed = item.getSensor().getWaterSpeedAquark().getSpeed();
-
-        if (speed != null) {
-          speed = Math.abs(speed);
-        }
-      }
-
-      String csq = item.getCSQ();
-      Double rainD = item.getRainD();
-      SensorData sensorData =
-          SensorData.builder()
-              .stationId(item.getStationId())
-              .obsTime(obsTime)
-              .csq(csq)
-              .v1(v1)
-              .v2(v2)
-              .v3(v3)
-              .v4(v4)
-              .v5(v5)
-              .v6(v6)
-              .v7(v7)
-              .rh(rh)
-              .tx(tx)
-              .echo(echo)
-              .speed(speed)
-              .rainD(rainD)
-              .build();
-
-      sensorDataRepository.save(sensorData);
     }
   }
 

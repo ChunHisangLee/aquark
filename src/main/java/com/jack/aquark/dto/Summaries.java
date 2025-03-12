@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class Summaries {
+  private static final long serialVersionUID = 1L;
   // Sum fields for voltage readings
   private double sumV1;
   private double sumV2;

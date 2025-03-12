@@ -22,20 +22,24 @@ public class RedisConfig {
   @Value("${spring.data.redis.port}")
   private int redisPort;
 
-  @Value("${spring.data.redis.password}")
+  // Default to empty string if not defined
+  @Value("${spring.data.redis.password:}")
   private String redisPassword;
 
   @Bean
   public RedisConnectionFactory redisConnectionFactory() {
     log.info(
-        "Initializing RedisConnectionFactory with host: {} and port: {} and password: {}",
-        redisHost,
-        redisPort,
-        redisPassword);
+            "Initializing RedisConnectionFactory with host: {} and port: {} and password: {}",
+            redisHost, redisPort, redisPassword
+    );
     RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration();
     redisConfig.setHostName(redisHost);
     redisConfig.setPort(redisPort);
-    redisConfig.setPassword(redisPassword);
+
+    if (!redisPassword.isEmpty()) {
+      redisConfig.setPassword(redisPassword);
+    }
+
     return new LettuceConnectionFactory(redisConfig);
   }
 
