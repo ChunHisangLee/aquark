@@ -1,15 +1,22 @@
 package com.jack.aquark.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jack.aquark.dto.RawDataItem;
-import com.jack.aquark.dto.RawDataWrapper;
-import com.jack.aquark.dto.Summaries;
+import com.jack.aquark.config.SchedulingProperties;
+import com.jack.aquark.dto.RawDataItemDto;
+import com.jack.aquark.dto.RawDataWrapperDto;
+import com.jack.aquark.dto.SummariesDto;
 import com.jack.aquark.entity.SensorData;
 import com.jack.aquark.repository.SensorDataRepository;
 import com.jack.aquark.service.SensorDataService;
+
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -22,16 +29,17 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 public class SensorDataServiceImpl implements SensorDataService {
   private final SensorDataRepository sensorDataRepository;
+  private final SchedulingProperties schedulingProperties;
   private final ObjectMapper objectMapper;
   private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
   @Override
   public void fetchAndSaveSensorData(String apiUrl) {
     try {
-      RawDataWrapper wrapper = fetchRawDataFromUrl(apiUrl);
+      RawDataWrapperDto wrapper = fetchRawDataFromUrl(apiUrl);
       if (wrapper != null && wrapper.getRaw() != null) {
 
-        for (RawDataItem item : wrapper.getRaw()) {
+        for (RawDataItemDto item : wrapper.getRaw()) {
           try {
             SensorData data = parseSensorData(item);
             sensorDataRepository.save(data);
@@ -45,7 +53,7 @@ public class SensorDataServiceImpl implements SensorDataService {
     }
   }
 
-  private SensorData parseSensorData(RawDataItem item) {
+  private SensorData parseSensorData(RawDataItemDto item) {
     LocalDateTime obsTime = LocalDateTime.parse(item.getObsTime(), formatter);
     SensorData.SensorDataBuilder builder =
         SensorData.builder()
@@ -59,7 +67,7 @@ public class SensorDataServiceImpl implements SensorDataService {
   }
 
   private void populateSensorFields(
-      RawDataItem.Sensor sensor, SensorData.SensorDataBuilder builder) {
+      RawDataItemDto.Sensor sensor, SensorData.SensorDataBuilder builder) {
     if (sensor != null) {
       if (sensor.getVolt() != null) {
         builder
@@ -87,12 +95,12 @@ public class SensorDataServiceImpl implements SensorDataService {
   }
 
   @Override
-  public void saveRawData(RawDataWrapper wrapper) {
+  public void saveRawData(RawDataWrapperDto wrapper) {
     if (wrapper == null || wrapper.getRaw() == null) {
       return;
     }
 
-    for (RawDataItem item : wrapper.getRaw()) {
+    for (RawDataItemDto item : wrapper.getRaw()) {
       try {
         LocalDateTime obsTime = LocalDateTime.parse(item.getObsTime(), formatter);
 
@@ -114,12 +122,12 @@ public class SensorDataServiceImpl implements SensorDataService {
   }
 
   @Override
-  public RawDataWrapper fetchRawDataFromUrl(String url) {
+  public RawDataWrapperDto fetchRawDataFromUrl(String url) {
     RestTemplate restTemplate = new RestTemplate();
     ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
 
     try {
-      return objectMapper.readValue(response.getBody(), RawDataWrapper.class);
+      return objectMapper.readValue(response.getBody(), RawDataWrapperDto.class);
     } catch (Exception e) {
       log.error("Error parsing raw data from URL", e);
       throw new RuntimeException("Failed to parse JSON", e);
@@ -128,11 +136,11 @@ public class SensorDataServiceImpl implements SensorDataService {
 
   @Override
   @Cacheable(value = "summaries", key = "#start.toString() + '_' + #end.toString()")
-  public Summaries getSummaries(LocalDateTime start, LocalDateTime end) {
-    List<SensorData> dataList = sensorDataRepository.findAllByObsTimeBetween(start, end);
+  public SummariesDto getSummaries(LocalDateTime start, LocalDateTime end) {
+    List<SensorData> dataList = sensorDataRepository.findByTimeRange(start, end);
 
     if (dataList.isEmpty()) {
-      return new Summaries();
+      return new SummariesDto();
     }
 
     double sumV1 = 0, sumV2 = 0, sumV3 = 0, sumV4 = 0, sumV5 = 0, sumV6 = 0, sumV7 = 0;
@@ -202,43 +210,96 @@ public class SensorDataServiceImpl implements SensorDataService {
       }
     }
 
-    Summaries summaries = new Summaries();
-    summaries.setSumV1(sumV1);
-    summaries.setSumV2(sumV2);
-    summaries.setSumV3(sumV3);
-    summaries.setSumV4(sumV4);
-    summaries.setSumV5(sumV5);
-    summaries.setSumV6(sumV6);
-    summaries.setSumV7(sumV7);
-    summaries.setSumRh(sumRh);
-    summaries.setSumTx(sumTx);
-    summaries.setSumEcho(sumEcho);
-    summaries.setSumSpeed(sumSpeed);
-    summaries.setSumRainD(maxRainD);
+    SummariesDto summariesDto = new SummariesDto();
+    summariesDto.setSumV1(sumV1);
+    summariesDto.setSumV2(sumV2);
+    summariesDto.setSumV3(sumV3);
+    summariesDto.setSumV4(sumV4);
+    summariesDto.setSumV5(sumV5);
+    summariesDto.setSumV6(sumV6);
+    summariesDto.setSumV7(sumV7);
+    summariesDto.setSumRh(sumRh);
+    summariesDto.setSumTx(sumTx);
+    summariesDto.setSumEcho(sumEcho);
+    summariesDto.setSumSpeed(sumSpeed);
+    summariesDto.setSumRainD(maxRainD);
 
-    summaries.setAvgV1(countV1 == 0 ? 0 : sumV1 / countV1);
-    summaries.setAvgV2(countV2 == 0 ? 0 : sumV2 / countV2);
-    summaries.setAvgV3(countV3 == 0 ? 0 : sumV3 / countV3);
-    summaries.setAvgV4(countV4 == 0 ? 0 : sumV4 / countV4);
-    summaries.setAvgV5(countV5 == 0 ? 0 : sumV5 / countV5);
-    summaries.setAvgV6(countV6 == 0 ? 0 : sumV6 / countV6);
-    summaries.setAvgV7(countV7 == 0 ? 0 : sumV7 / countV7);
-    summaries.setAvgRh(countRh == 0 ? 0 : sumRh / countRh);
-    summaries.setAvgTx(countTx == 0 ? 0 : sumTx / countTx);
-    summaries.setAvgEcho(countEcho == 0 ? 0 : sumEcho / countEcho);
-    summaries.setAvgSpeed(countSpeed == 0 ? 0 : sumSpeed / countSpeed);
+    summariesDto.setAvgV1(countV1 == 0 ? 0 : sumV1 / countV1);
+    summariesDto.setAvgV2(countV2 == 0 ? 0 : sumV2 / countV2);
+    summariesDto.setAvgV3(countV3 == 0 ? 0 : sumV3 / countV3);
+    summariesDto.setAvgV4(countV4 == 0 ? 0 : sumV4 / countV4);
+    summariesDto.setAvgV5(countV5 == 0 ? 0 : sumV5 / countV5);
+    summariesDto.setAvgV6(countV6 == 0 ? 0 : sumV6 / countV6);
+    summariesDto.setAvgV7(countV7 == 0 ? 0 : sumV7 / countV7);
+    summariesDto.setAvgRh(countRh == 0 ? 0 : sumRh / countRh);
+    summariesDto.setAvgTx(countTx == 0 ? 0 : sumTx / countTx);
+    summariesDto.setAvgEcho(countEcho == 0 ? 0 : sumEcho / countEcho);
+    summariesDto.setAvgSpeed(countSpeed == 0 ? 0 : sumSpeed / countSpeed);
 
-    return summaries;
+    return summariesDto;
+  }
+
+  @Override
+  public List<SensorData> getSensorDataByDate(LocalDate date) {
+    return sensorDataRepository.findByDate(date);
   }
 
   @Override
   public List<SensorData> getSensorDataBetween(LocalDateTime start, LocalDateTime end) {
-    return sensorDataRepository.findAllByObsTimeBetween(start, end);
+    return sensorDataRepository.findByTimeRange(start, end);
   }
 
   @Override
   @Cacheable(value = "hourlyAverage", key = "#start.toString() + '_' + #end.toString()")
   public List<Object[]> getHourlyAverage(LocalDateTime start, LocalDateTime end) {
     return sensorDataRepository.findHourlyAverages(start, end);
+  }
+
+  @Override
+  public List<SensorData> getLatestSensorData() {
+    double intervalMinutes = schedulingProperties.getIntervalMinutes();
+    return sensorDataRepository.findLatestSensorData(intervalMinutes);
+  }
+
+  @Override
+  public List<SensorData> getPeakTimeData(LocalDateTime start, LocalDateTime end) {
+    List<SensorData> allData = getSensorDataBetween(start, end);
+    return allData.stream()
+            .filter(data -> isPeakTime(data.getObsTime()))
+            .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<SensorData> getOffPeakTimeData(LocalDateTime start, LocalDateTime end) {
+    List<SensorData> allData = getSensorDataBetween(start, end);
+    return allData.stream()
+            .filter(data -> !isPeakTime(data.getObsTime()))
+            .collect(Collectors.toList());
+  }
+
+  private boolean isPeakTime(LocalDateTime dateTime) {
+    DayOfWeek day = dateTime.getDayOfWeek();
+    LocalTime time = dateTime.toLocalTime();
+
+    LocalTime startPeak = LocalTime.of(7, 30);
+    LocalTime endPeak = LocalTime.of(17, 30);
+
+    switch (day) {
+      case MONDAY:
+      case TUESDAY:
+      case WEDNESDAY:
+        // Peak if 07:30 <= time < 17:30
+        return !time.isBefore(startPeak) && time.isBefore(endPeak);
+      case THURSDAY:
+      case FRIDAY:
+        // Peak all day
+        return true;
+      case SATURDAY:
+      case SUNDAY:
+        // Off-peak all day
+        return false;
+      default:
+        return false; // Fallback, shouldn't happen
+    }
   }
 }

@@ -1,7 +1,7 @@
 package com.jack.aquark.controller;
 
-import com.jack.aquark.dto.RawDataWrapper;
-import com.jack.aquark.dto.Summaries;
+import com.jack.aquark.dto.RawDataWrapperDto;
+import com.jack.aquark.dto.SummariesDto;
 import com.jack.aquark.entity.SensorData;
 import com.jack.aquark.service.SensorDataService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,7 +46,7 @@ public class SensorDataController {
     try {
       // Compose URL dynamically using the provided stationId
       String url = "https://app.aquark.com.tw/api/raw/Angle2024/" + stationId;
-      RawDataWrapper wrapper = sensorDataService.fetchRawDataFromUrl(url);
+      RawDataWrapperDto wrapper = sensorDataService.fetchRawDataFromUrl(url);
       sensorDataService.saveRawData(wrapper);
       return ResponseEntity.ok("Fetched and saved successfully for station: " + stationId);
     } catch (Exception e) {
@@ -111,20 +111,20 @@ public class SensorDataController {
   }
 
   @Operation(
-          summary = "Get Summaries",
+          summary = "Get SummariesDto",
           description = "Calculates the sum and average of sensor data within a specified time range. This includes totals for voltage fields, RH, TX, echo, speed, and rain.")
   @ApiResponses({
           @ApiResponse(
                   responseCode = "200",
-                  description = "Summaries calculated successfully",
-                  content = @Content(schema = @Schema(implementation = Summaries.class))),
+                  description = "SummariesDto calculated successfully",
+                  content = @Content(schema = @Schema(implementation = SummariesDto.class))),
           @ApiResponse(
                   responseCode = "400",
                   description = "Bad Request: Incorrect date format",
                   content = @Content(schema = @Schema(implementation = String.class)))
   })
   @GetMapping("/summaries")
-  public ResponseEntity<Summaries> getSummaries(
+  public ResponseEntity<SummariesDto> getSummaries(
           @Parameter(
                   example = "2025-03-11 15:48:59",
                   description = "Start date and time in the format yyyy-MM-dd HH:mm:ss")
@@ -133,7 +133,34 @@ public class SensorDataController {
                   example = "2025-03-11 23:59:59",
                   description = "End date and time in the format yyyy-MM-dd HH:mm:ss")
           @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end) {
-    Summaries summaries = sensorDataService.getSummaries(start, end);
-    return ResponseEntity.ok(summaries);
+    SummariesDto summariesDto = sensorDataService.getSummaries(start, end);
+    return ResponseEntity.ok(summariesDto);
+  }
+
+  @Operation(summary = "Get all data in time range (no classification)")
+  @GetMapping("/time-range")
+  public ResponseEntity<List<SensorData>> getDataInTimeRange(
+          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+    List<SensorData> result = sensorDataService.getSensorDataBetween(start, end);
+    return ResponseEntity.ok(result);
+  }
+
+  @Operation(summary = "Get peak-time data in time range")
+  @GetMapping("/peak")
+  public ResponseEntity<List<SensorData>> getPeakData(
+          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+    List<SensorData> result = sensorDataService.getPeakTimeData(start, end);
+    return ResponseEntity.ok(result);
+  }
+
+  @Operation(summary = "Get off-peak data in time range")
+  @GetMapping("/off-peak")
+  public ResponseEntity<List<SensorData>> getOffPeakData(
+          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+    List<SensorData> result = sensorDataService.getOffPeakTimeData(start, end);
+    return ResponseEntity.ok(result);
   }
 }

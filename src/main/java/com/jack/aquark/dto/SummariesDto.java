@@ -2,8 +2,10 @@ package com.jack.aquark.dto;
 
 import lombok.Data;
 
+import java.io.Serializable;
+
 @Data
-public class Summaries {
+public class SummariesDto implements Serializable {
   private static final long serialVersionUID = 1L;
   // Sum fields for voltage readings
   private double sumV1;

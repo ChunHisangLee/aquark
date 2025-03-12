@@ -29,3 +29,25 @@ CREATE TABLE alarm_threshold
     sensor_name     VARCHAR(50)      NOT NULL,
     threshold_value DOUBLE PRECISION NOT NULL
 );
+
+
+DROP TABLE IF EXISTS fetched_api CASCADE;
+CREATE TABLE fetched_api
+(
+    id         BIGSERIAL PRIMARY KEY,
+    api_url    VARCHAR(255) UNIQUE NOT NULL,
+    fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+DROP TABLE IF EXISTS daily_aggregation CASCADE;
+CREATE TABLE daily_aggregation
+(
+    id               BIGSERIAL PRIMARY KEY,
+    obs_date         DATE        NOT NULL,
+    sensor_name      VARCHAR(50) NOT NULL,
+    sum_value        DOUBLE PRECISION,
+    avg_hourly_value DOUBLE PRECISION,
+    avg_daily_value  DOUBLE PRECISION,
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

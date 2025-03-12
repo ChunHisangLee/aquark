@@ -14,9 +14,9 @@ public class AlarmThreshold {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  // sensorType 可設定為 "v1", "rh", "tx", "echo", "rainD" 等
-  @Column(unique = true)
-  private String sensorType;
+  @Column(name = "sensor_name", unique = true, nullable = false)
+  private String sensorName;
 
-  private Double threshold;
+  @Column(name = "threshold_value", nullable = false)
+  private Double thresholdValue;
 }

@@ -15,31 +15,48 @@ public class SensorData {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @Column(name = "station_id")
   private String stationId;
 
+  @Column(name = "obs_time", nullable = false)
   private LocalDateTime obsTime;
 
+  @Column(name = "csq")
   private String csq;
 
-  // 電壓
+  @Column(name = "v1")
   private Double v1;
+
+  @Column(name = "v2")
   private Double v2;
+
+  @Column(name = "v3")
   private Double v3;
+
+  @Column(name = "v4")
   private Double v4;
+
+  @Column(name = "v5")
   private Double v5;
+
+  @Column(name = "v6")
   private Double v6;
+
+  @Column(name = "v7")
   private Double v7;
 
-  // 濕度%與溫度℃
+  @Column(name = "rh")
   private Double rh;
+
+  @Column(name = "tx")
   private Double tx;
 
-  // 水位空高
+  @Column(name = "echo")
   private Double echo;
 
-  // 日累積雨量
+  @Column(name = "rain_d")
   private Double rainD;
 
-  // speed 表面流速 m/s
+  @Column(name = "speed")
   private Double speed;
 }

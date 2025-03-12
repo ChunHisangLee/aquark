@@ -40,8 +40,8 @@ public class AlarmThresholdController {
           @Parameter(
                   example = "v1",
                   description = "The sensor type (e.g., 'v1', 'rh', etc.) for which to retrieve the threshold")
-          @PathVariable String sensorType) {
-    AlarmThreshold threshold = alarmThresholdService.getThreshold(sensorType);
+          @PathVariable String sensorName) {
+    AlarmThreshold threshold = alarmThresholdService.getThreshold(sensorName);
     return ResponseEntity.ok(threshold);
   }
 

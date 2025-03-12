@@ -1,6 +1,8 @@
 package com.jack.aquark.scheduler;
 
+import com.jack.aquark.config.ApiUrlProperties;
 import com.jack.aquark.service.AlarmThresholdService;
+import com.jack.aquark.service.FetchedApiService;
 import com.jack.aquark.service.SensorDataService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,14 +16,21 @@ public class DataFetchScheduler {
 
   private final SensorDataService sensorDataService;
   private final AlarmThresholdService alarmThresholdService;
+  private final FetchedApiService fetchedApiService;
+  private final ApiUrlProperties apiUrlProperties;
 
-  // 這裡使用 application.yml 中設定的 cron 表達式
+  // Use cron expression defined in application.yml
   @Scheduled(cron = "${scheduling.cron}")
   public void fetchDataTask() {
-    log.info("開始呼叫外部 API 取得 sensor 資料...");
-    // 假設我們從多個 URL 取得資料，這裡以其中一個 URL 為例
-    String apiUrl = "https://app.aquark.com.tw/api/raw/Angle2024/240627";
-    sensorDataService.fetchAndSaveSensorData(apiUrl);
-    log.info("完成資料存檔。");
+    apiUrlProperties.getUrls().forEach(apiUrl -> {
+      if (!fetchedApiService.exists(apiUrl)) {
+        log.info("API URL {} not found. Fetching and saving sensor data...", apiUrl);
+        sensorDataService.fetchAndSaveSensorData(apiUrl);
+        fetchedApiService.saveApiUrl(apiUrl);
+        log.info("Data and API URL {} saved.", apiUrl);
+      } else {
+        log.info("API URL {} already exists. Skipping fetching.", apiUrl);
+      }
+    });
   }
 }

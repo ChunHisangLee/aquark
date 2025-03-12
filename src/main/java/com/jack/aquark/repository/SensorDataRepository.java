@@ -1,6 +1,7 @@
 package com.jack.aquark.repository;
 
 import com.jack.aquark.entity.SensorData;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,8 +10,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
-  // 查詢指定時間區間內的數據（例如：尖峰或離峰）
-  List<SensorData> findAllByObsTimeBetween(LocalDateTime start, LocalDateTime end);
+  @Query(
+      "SELECT s FROM SensorData s WHERE s.obsTime BETWEEN :start AND :end ORDER BY s.obsTime ASC")
+  List<SensorData> findByTimeRange(LocalDateTime start, LocalDateTime end);
 
   @Query(
       "SELECT FUNCTION('to_char', sd.obsTime, 'YYYY-MM-DD HH24:00') as hour, "
@@ -22,4 +24,12 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
           + "WHERE sd.obsTime BETWEEN ?1 AND ?2 "
           + "GROUP BY FUNCTION('to_char', sd.obsTime, 'YYYY-MM-DD HH24:00')")
   List<Object[]> findHourlyAverages(LocalDateTime start, LocalDateTime end);
+
+  // Parameterized query: CURRENT_TIMESTAMP minus the passed interval (converted from minutes to
+  // days)
+  @Query("SELECT s FROM SensorData s WHERE s.obsTime >= CURRENT_TIMESTAMP - (?1/1440.0)")
+  List<SensorData> findLatestSensorData(double intervalMinutes);
+
+  @Query("SELECT s FROM SensorData s WHERE DATE(s.obsTime) = :date")
+  List<SensorData> findByDate(LocalDate date);
 }

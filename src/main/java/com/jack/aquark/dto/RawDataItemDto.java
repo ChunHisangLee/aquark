@@ -7,7 +7,7 @@ import lombok.Data;
 
 @Data
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class RawDataItem {
+public class RawDataItemDto {
   private String stationId;
   private String obsTime;
   @JsonProperty("CSQ")
