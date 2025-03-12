@@ -25,10 +25,7 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
           + "GROUP BY FUNCTION('to_char', sd.obsTime, 'YYYY-MM-DD HH24:00')")
   List<Object[]> findHourlyAverages(LocalDateTime start, LocalDateTime end);
 
-  // Parameterized query: CURRENT_TIMESTAMP minus the passed interval (converted from minutes to
-  // days)
-  @Query("SELECT s FROM SensorData s WHERE s.obsTime >= CURRENT_TIMESTAMP - (?1/1440.0)")
-  List<SensorData> findLatestSensorData(double intervalMinutes);
+  List<SensorData> findAllByObsTimeAfter(LocalDateTime time);
 
   @Query("SELECT s FROM SensorData s WHERE DATE(s.obsTime) = :date")
   List<SensorData> findByDate(LocalDate date);

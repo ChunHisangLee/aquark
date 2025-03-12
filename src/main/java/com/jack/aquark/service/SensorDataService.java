@@ -22,7 +22,7 @@ public interface SensorDataService {
 
   List<Object[]> getHourlyAverage(LocalDateTime start, LocalDateTime end);
 
-  List<SensorData> getLatestSensorData();
+  List<SensorData> getLatestSensorData(double intervalMinutes);
 
   List<SensorData> getPeakTimeData(LocalDateTime start, LocalDateTime end);
 

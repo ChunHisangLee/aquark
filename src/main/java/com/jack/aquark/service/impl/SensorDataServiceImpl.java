@@ -256,10 +256,12 @@ public class SensorDataServiceImpl implements SensorDataService {
   }
 
   @Override
-  public List<SensorData> getLatestSensorData() {
-    double intervalMinutes = schedulingProperties.getIntervalMinutes();
-    return sensorDataRepository.findLatestSensorData(intervalMinutes);
+  public List<SensorData> getLatestSensorData(double intervalMinutes) {
+    // Calculate the threshold time in Java:
+    LocalDateTime threshold = LocalDateTime.now().minusMinutes((long) intervalMinutes);
+    return sensorDataRepository.findAllByObsTimeAfter(threshold);
   }
+
 
   @Override
   public List<SensorData> getPeakTimeData(LocalDateTime start, LocalDateTime end) {
