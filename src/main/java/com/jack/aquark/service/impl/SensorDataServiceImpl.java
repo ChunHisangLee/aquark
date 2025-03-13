@@ -6,8 +6,10 @@ import com.jack.aquark.dto.RawDataWrapperDto;
 import com.jack.aquark.dto.SummariesDto;
 import com.jack.aquark.entity.HourlyAggregation;
 import com.jack.aquark.entity.SensorData;
+import com.jack.aquark.entity.TempSensorData;
 import com.jack.aquark.repository.HourlyAggregationRepository;
 import com.jack.aquark.repository.SensorDataRepository;
+import com.jack.aquark.repository.TempSensorDataRepository;
 import com.jack.aquark.service.SensorDataService;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -28,6 +30,7 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 public class SensorDataServiceImpl implements SensorDataService {
   private final SensorDataRepository sensorDataRepository;
+  private final TempSensorDataRepository tempSensorDataRepository;
   private final HourlyAggregationRepository hourlyAggregationRepository;
   private final ObjectMapper objectMapper;
   private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -36,14 +39,17 @@ public class SensorDataServiceImpl implements SensorDataService {
   public void fetchAndSaveSensorData(String apiUrl) {
     try {
       RawDataWrapperDto wrapper = fetchRawDataFromUrl(apiUrl);
-
       if (wrapper != null && wrapper.getRaw() != null) {
         for (RawDataItemDto item : wrapper.getRaw()) {
           try {
+            // Parse to permanent entity
             SensorData data = parseSensorData(item);
             sensorDataRepository.save(data);
+            // Also parse and save to temporary table
+            TempSensorData tempData = parseTempSensorData(item);
+            tempSensorDataRepository.save(tempData);
           } catch (Exception e) {
-            log.error("Error Fetch And Save Sensor Data: {}", item, e);
+            log.error("Error processing sensor data item: {}", item, e);
           }
         }
       }
@@ -54,15 +60,71 @@ public class SensorDataServiceImpl implements SensorDataService {
 
   private SensorData parseSensorData(RawDataItemDto item) {
     LocalDateTime obsTime = LocalDateTime.parse(item.getObsTime(), formatter);
-    SensorData.SensorDataBuilder builder =
-        SensorData.builder()
-            .stationId(item.getStationId())
-            .obsTime(obsTime)
-            .csq(item.getCsq())
-            .rainD(item.getRainD());
+    return SensorData.builder()
+        .stationId(item.getStationId())
+        .obsTime(obsTime)
+        .csq(item.getCsq())
+        .rainD(item.getRainD())
+        .v1(item.getSensor().getVolt().getV1())
+        .v2(item.getSensor().getVolt().getV2())
+        .v3(item.getSensor().getVolt().getV3())
+        .v4(item.getSensor().getVolt().getV4())
+        .v5(item.getSensor().getVolt().getV5())
+        .v6(item.getSensor().getVolt().getV6())
+        .v7(item.getSensor().getVolt().getV7())
+        .rh(item.getSensor().getStickTxRh().getRh())
+        .tx(item.getSensor().getStickTxRh().getTx())
+        .echo(item.getSensor().getUltrasonicLevel().getEcho())
+        .speed(item.getSensor().getWaterSpeedAquark().getSpeed())
+        .build();
+  }
 
-    populateSensorFields(item.getSensor(), builder);
-    return builder.build();
+  private TempSensorData parseTempSensorData(RawDataItemDto item) {
+    LocalDateTime obsTime = LocalDateTime.parse(item.getObsTime(), formatter);
+    return TempSensorData.builder()
+        .stationId(item.getStationId())
+        .obsTime(obsTime)
+        .csq(item.getCsq())
+        .rainD(item.getRainD())
+        .v1(item.getSensor().getVolt().getV1())
+        .v2(item.getSensor().getVolt().getV2())
+        .v3(item.getSensor().getVolt().getV3())
+        .v4(item.getSensor().getVolt().getV4())
+        .v5(item.getSensor().getVolt().getV5())
+        .v6(item.getSensor().getVolt().getV6())
+        .v7(item.getSensor().getVolt().getV7())
+        .rh(item.getSensor().getStickTxRh().getRh())
+        .tx(item.getSensor().getStickTxRh().getTx())
+        .echo(item.getSensor().getUltrasonicLevel().getEcho())
+        .speed(item.getSensor().getWaterSpeedAquark().getSpeed())
+        .build();
+  }
+
+  @Override
+  public void saveRawData(RawDataWrapperDto wrapper) {
+    if (wrapper == null || wrapper.getRaw() == null) {
+      return;
+    }
+
+    for (RawDataItemDto item : wrapper.getRaw()) {
+      try {
+        LocalDateTime obsTime = LocalDateTime.parse(item.getObsTime(), formatter);
+
+        SensorData.SensorDataBuilder builder =
+            SensorData.builder()
+                .stationId(item.getStationId())
+                .obsTime(obsTime)
+                .csq(item.getCsq())
+                .rainD(item.getRainD());
+
+        populateSensorFields(item.getSensor(), builder);
+
+        SensorData sensorData = builder.build();
+        sensorDataRepository.save(sensorData);
+      } catch (Exception e) {
+        log.error("Error Saving Raw Data: {}", item, e);
+      }
+    }
   }
 
   private void populateSensorFields(
@@ -92,33 +154,6 @@ public class SensorDataServiceImpl implements SensorDataService {
         if (speed != null) {
           builder.speed(Math.abs(speed));
         }
-      }
-    }
-  }
-
-  @Override
-  public void saveRawData(RawDataWrapperDto wrapper) {
-    if (wrapper == null || wrapper.getRaw() == null) {
-      return;
-    }
-
-    for (RawDataItemDto item : wrapper.getRaw()) {
-      try {
-        LocalDateTime obsTime = LocalDateTime.parse(item.getObsTime(), formatter);
-
-        SensorData.SensorDataBuilder builder =
-            SensorData.builder()
-                .stationId(item.getStationId())
-                .obsTime(obsTime)
-                .csq(item.getCsq())
-                .rainD(item.getRainD());
-
-        populateSensorFields(item.getSensor(), builder);
-
-        SensorData sensorData = builder.build();
-        sensorDataRepository.save(sensorData);
-      } catch (Exception e) {
-        log.error("Error Saving Raw Data: {}", item, e);
       }
     }
   }

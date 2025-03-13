@@ -63,3 +63,25 @@ CREATE TABLE daily_aggregation
     avg_value   DOUBLE PRECISION,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 6. Temporary Sensor Data Table
+DROP TABLE IF EXISTS temp_sensor_data CASCADE;
+CREATE TABLE temp_sensor_data
+(
+    id         BIGSERIAL PRIMARY KEY,
+    station_id VARCHAR(50),
+    obs_time   TIMESTAMP NOT NULL,
+    csq        VARCHAR(20),
+    v1         DOUBLE PRECISION,
+    v2         DOUBLE PRECISION,
+    v3         DOUBLE PRECISION,
+    v4         DOUBLE PRECISION,
+    v5         DOUBLE PRECISION,
+    v6         DOUBLE PRECISION,
+    v7         DOUBLE PRECISION,
+    rh         DOUBLE PRECISION,
+    tx         DOUBLE PRECISION,
+    echo       DOUBLE PRECISION,
+    rain_d     DOUBLE PRECISION,
+    speed      DOUBLE PRECISION
+);
