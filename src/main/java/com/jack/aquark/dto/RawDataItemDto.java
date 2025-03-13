@@ -10,8 +10,10 @@ import lombok.Data;
 public class RawDataItemDto {
   private String stationId;
   private String obsTime;
+
   @JsonProperty("CSQ")
   private String csq;
+
   private Sensor sensor;
   private Double rainD;
 
@@ -19,10 +21,13 @@ public class RawDataItemDto {
   public static class Sensor {
     @JsonProperty("Volt")
     private Volt volt;
+
     @JsonProperty("StickTxRh")
     private StickTxRh stickTxRh;
+
     @JsonProperty("Ultrasonic_Level")
     private UltrasonicLevel ultrasonicLevel;
+
     @JsonProperty("Water_speed_aquark")
     private WaterSpeedAquark waterSpeedAquark;
   }

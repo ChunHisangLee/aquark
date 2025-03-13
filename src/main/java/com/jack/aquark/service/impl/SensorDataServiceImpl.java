@@ -1,14 +1,14 @@
 package com.jack.aquark.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jack.aquark.config.SchedulingProperties;
 import com.jack.aquark.dto.RawDataItemDto;
 import com.jack.aquark.dto.RawDataWrapperDto;
 import com.jack.aquark.dto.SummariesDto;
+import com.jack.aquark.entity.HourlyAggregation;
 import com.jack.aquark.entity.SensorData;
+import com.jack.aquark.repository.HourlyAggregationRepository;
 import com.jack.aquark.repository.SensorDataRepository;
 import com.jack.aquark.service.SensorDataService;
-
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,7 +16,6 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -29,7 +28,7 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 public class SensorDataServiceImpl implements SensorDataService {
   private final SensorDataRepository sensorDataRepository;
-  private final SchedulingProperties schedulingProperties;
+  private final HourlyAggregationRepository hourlyAggregationRepository;
   private final ObjectMapper objectMapper;
   private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -37,8 +36,8 @@ public class SensorDataServiceImpl implements SensorDataService {
   public void fetchAndSaveSensorData(String apiUrl) {
     try {
       RawDataWrapperDto wrapper = fetchRawDataFromUrl(apiUrl);
-      if (wrapper != null && wrapper.getRaw() != null) {
 
+      if (wrapper != null && wrapper.getRaw() != null) {
         for (RawDataItemDto item : wrapper.getRaw()) {
           try {
             SensorData data = parseSensorData(item);
@@ -82,11 +81,14 @@ public class SensorDataServiceImpl implements SensorDataService {
       if (sensor.getStickTxRh() != null) {
         builder.rh(sensor.getStickTxRh().getRh()).tx(sensor.getStickTxRh().getTx());
       }
+
       if (sensor.getUltrasonicLevel() != null) {
         builder.echo(sensor.getUltrasonicLevel().getEcho());
       }
+
       if (sensor.getWaterSpeedAquark() != null) {
         Double speed = sensor.getWaterSpeedAquark().getSpeed();
+
         if (speed != null) {
           builder.speed(Math.abs(speed));
         }
@@ -137,7 +139,7 @@ public class SensorDataServiceImpl implements SensorDataService {
   @Override
   @Cacheable(value = "summaries", key = "#start.toString() + '_' + #end.toString()")
   public SummariesDto getSummaries(LocalDateTime start, LocalDateTime end) {
-    List<SensorData> dataList = sensorDataRepository.findByTimeRange(start, end);
+    List<SensorData> dataList = sensorDataRepository.findAllByObsTimeBetweenOrderByObsTimeAsc(start, end);
 
     if (dataList.isEmpty()) {
       return new SummariesDto();
@@ -240,43 +242,35 @@ public class SensorDataServiceImpl implements SensorDataService {
   }
 
   @Override
-  public List<SensorData> getSensorDataByDate(LocalDate date) {
-    return sensorDataRepository.findByDate(date);
-  }
-
-  @Override
-  public List<SensorData> getSensorDataBetween(LocalDateTime start, LocalDateTime end) {
-    return sensorDataRepository.findByTimeRange(start, end);
+  @Cacheable(value = "sensorDataTimeRange", key = "#start.toString() + '_' + #end.toString()")
+  public List<SensorData> getSensorDataByTimeRange(LocalDateTime start, LocalDateTime end) {
+    log.info("Querying DB for sensor data between {} and {}", start, end);
+    return sensorDataRepository.findAllByObsTimeBetweenOrderByObsTimeAsc(start, end);
   }
 
   @Override
   @Cacheable(value = "hourlyAverage", key = "#start.toString() + '_' + #end.toString()")
-  public List<Object[]> getHourlyAverage(LocalDateTime start, LocalDateTime end) {
-    return sensorDataRepository.findHourlyAverages(start, end);
+  public List<HourlyAggregation> getHourlyAverage(LocalDateTime start, LocalDateTime end) {
+    // Convert the LocalDateTime parameters to LocalDate.
+    LocalDate startDate = start.toLocalDate();
+    LocalDate endDate = end.toLocalDate();
+    return hourlyAggregationRepository.findByObsDateBetween(startDate, endDate);
   }
-
-  @Override
-  public List<SensorData> getLatestSensorData(double intervalMinutes) {
-    // Calculate the threshold time in Java:
-    LocalDateTime threshold = LocalDateTime.now().minusMinutes((long) intervalMinutes);
-    return sensorDataRepository.findAllByObsTimeAfter(threshold);
-  }
-
 
   @Override
   public List<SensorData> getPeakTimeData(LocalDateTime start, LocalDateTime end) {
-    List<SensorData> allData = getSensorDataBetween(start, end);
+    List<SensorData> allData = getSensorDataByTimeRange(start, end);
     return allData.stream()
-            .filter(data -> isPeakTime(data.getObsTime()))
-            .collect(Collectors.toList());
+        .filter(data -> isPeakTime(data.getObsTime()))
+        .collect(Collectors.toList());
   }
 
   @Override
   public List<SensorData> getOffPeakTimeData(LocalDateTime start, LocalDateTime end) {
-    List<SensorData> allData = getSensorDataBetween(start, end);
+    List<SensorData> allData = getSensorDataByTimeRange(start, end);
     return allData.stream()
-            .filter(data -> !isPeakTime(data.getObsTime()))
-            .collect(Collectors.toList());
+        .filter(data -> !isPeakTime(data.getObsTime()))
+        .collect(Collectors.toList());
   }
 
   private boolean isPeakTime(LocalDateTime dateTime) {
@@ -286,22 +280,16 @@ public class SensorDataServiceImpl implements SensorDataService {
     LocalTime startPeak = LocalTime.of(7, 30);
     LocalTime endPeak = LocalTime.of(17, 30);
 
-    switch (day) {
-      case MONDAY:
-      case TUESDAY:
-      case WEDNESDAY:
-        // Peak if 07:30 <= time < 17:30
-        return !time.isBefore(startPeak) && time.isBefore(endPeak);
-      case THURSDAY:
-      case FRIDAY:
-        // Peak all day
-        return true;
-      case SATURDAY:
-      case SUNDAY:
-        // Off-peak all day
-        return false;
-      default:
-        return false; // Fallback, shouldn't happen
-    }
+    return switch (day) {
+      case MONDAY, TUESDAY, WEDNESDAY ->
+          // Peak if 07:30 <= time < 17:30
+          !time.isBefore(startPeak) && time.isBefore(endPeak);
+      case THURSDAY, FRIDAY ->
+          // Peak all day
+          true;
+      case SATURDAY, SUNDAY ->
+          // Off-peak all day
+          false;
+    };
   }
 }

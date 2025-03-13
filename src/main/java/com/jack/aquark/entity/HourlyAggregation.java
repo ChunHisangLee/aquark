@@ -5,32 +5,32 @@ import java.time.LocalDate;
 import lombok.*;
 
 @Entity
-@Table(name = "daily_aggregation")
+@Table(name = "hourly_aggregation")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class DailyAggregation {
+public class HourlyAggregation {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  // Date of aggregation (the day the data belongs to)
+  // Date of aggregation
   @Column(name = "obs_date", nullable = false)
   private LocalDate obsDate;
 
-  // The hour of the day for this record (0-23)
+  // Aggregated hour (0 - 23)
   @Column(name = "obs_hour", nullable = false)
   private int obsHour;
 
   @Column(name = "sensor_name", nullable = false)
   private String sensorName;
 
-  // Sum for that hour (could be the same as the hourly aggregation)
+  // Sum of the sensor's values in this hour
   @Column(name = "sum_value")
   private Double sumValue;
 
-  // Average for that hour
+  // Average of the sensor's values in this hour
   @Column(name = "avg_value")
   private Double avgValue;
 }
