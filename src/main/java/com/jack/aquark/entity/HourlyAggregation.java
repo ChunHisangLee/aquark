@@ -1,12 +1,14 @@
 package com.jack.aquark.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.*;
 
 @Entity
 @Table(name = "hourly_aggregation")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -28,9 +30,9 @@ public class HourlyAggregation {
 
   // Sum of the sensor's values in this hour
   @Column(name = "sum_value")
-  private Double sumValue;
+  private BigDecimal sumValue;
 
   // Average of the sensor's values in this hour
   @Column(name = "avg_value")
-  private Double avgValue;
+  private BigDecimal avgValue;
 }

@@ -15,12 +15,14 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Service
 @AllArgsConstructor
 @Slf4j
 public class AggregationServiceImpl implements AggregationService {
-  
+
   private final HourlyAggregationRepository hourlyAggregationRepository;
   private final DailyAggregationRepository dailyAggregationRepository;
   private final TempSensorDataRepository tempSensorDataRepository;
@@ -29,31 +31,31 @@ public class AggregationServiceImpl implements AggregationService {
   public void saveHourlyAggregation(HourlyAggregation aggregation) {
     hourlyAggregationRepository.save(aggregation);
     log.info(
-        "Saved hourly aggregation for {} hour {} sensor {}: sum={}, avg={}",
-        aggregation.getObsDate(),
-        aggregation.getObsHour(),
-        aggregation.getSensorName(),
-        aggregation.getSumValue(),
-        aggregation.getAvgValue());
+            "Saved hourly aggregation for {} hour {} sensor {}: sum={}, avg={}",
+            aggregation.getObsDate(),
+            aggregation.getObsHour(),
+            aggregation.getSensorName(),
+            aggregation.getSumValue(),
+            aggregation.getAvgValue());
   }
 
   @Override
   public void aggregateHourlyData() {
     // Existing aggregation from raw SensorData (if needed)
-    // Here you might decide to calculate from temp table instead.
     LocalDateTime now = LocalDateTime.now();
     LocalDateTime oneHourAgo = now.minusHours(1);
     LocalDate currentDate = now.toLocalDate();
     int currentHour = now.getHour();
 
     List<TempSensorData> tempData =
-        tempSensorDataRepository.findAllByObsTimeBetween(oneHourAgo, now);
+            tempSensorDataRepository.findAllByObsTimeBetween(oneHourAgo, now);
     if (tempData.isEmpty()) {
       log.info("No temporary sensor data available for the last hour.");
       return;
     }
 
-    Map<String, Function<TempSensorData, Double>> fieldAccessors = new LinkedHashMap<>();
+    // Use BigDecimal field accessors
+    Map<String, Function<TempSensorData, BigDecimal>> fieldAccessors = new LinkedHashMap<>();
     fieldAccessors.put("v1", TempSensorData::getV1);
     fieldAccessors.put("v2", TempSensorData::getV2);
     fieldAccessors.put("v3", TempSensorData::getV3);
@@ -67,23 +69,28 @@ public class AggregationServiceImpl implements AggregationService {
     fieldAccessors.put("rainD", TempSensorData::getRainD);
     fieldAccessors.put("speed", TempSensorData::getSpeed);
 
-    fieldAccessors.forEach(
-        (sensorName, getter) -> {
-          List<Double> values = tempData.stream().map(getter).filter(Objects::nonNull).toList();
-          double sum = values.stream().mapToDouble(Double::doubleValue).sum();
-          double avg = values.isEmpty() ? 0.0 : sum / values.size();
+    fieldAccessors.forEach((sensorName, getter) -> {
+      List<BigDecimal> values = tempData.stream()
+              .map(getter)
+              .filter(Objects::nonNull)
+              .toList();
 
-          HourlyAggregation aggregation =
+      BigDecimal sum = values.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+      BigDecimal avg = values.isEmpty()
+              ? BigDecimal.ZERO
+              : sum.divide(BigDecimal.valueOf(values.size()), 2, RoundingMode.HALF_UP);
+
+      HourlyAggregation aggregation =
               HourlyAggregation.builder()
-                  .obsDate(currentDate)
-                  .obsHour(currentHour)
-                  .sensorName(sensorName)
-                  .sumValue(sum)
-                  .avgValue(avg)
-                  .build();
+                      .obsDate(currentDate)
+                      .obsHour(currentHour)
+                      .sensorName(sensorName)
+                      .sumValue(sum)
+                      .avgValue(avg)
+                      .build();
 
-          saveHourlyAggregation(aggregation);
-        });
+      saveHourlyAggregation(aggregation);
+    });
   }
 
   @Override
@@ -93,35 +100,34 @@ public class AggregationServiceImpl implements AggregationService {
 
     // Retrieve all hourly aggregations for yesterday.
     List<HourlyAggregation> hourlyAggregations =
-        hourlyAggregationRepository.findByObsDate(yesterday);
+            hourlyAggregationRepository.findByObsDate(yesterday);
     if (hourlyAggregations.isEmpty()) {
       log.warn("No hourly aggregation records found for {}", yesterday);
       return;
     }
 
     Map<String, List<HourlyAggregation>> sensorToHourly =
-        hourlyAggregations.stream()
-            .collect(Collectors.groupingBy(HourlyAggregation::getSensorName));
+            hourlyAggregations.stream()
+                    .collect(Collectors.groupingBy(HourlyAggregation::getSensorName));
 
-    sensorToHourly.forEach(
-        (sensorName, hourlyList) -> {
-          for (HourlyAggregation hourly : hourlyList) {
-            DailyAggregation dailyAgg =
+    sensorToHourly.forEach((sensorName, hourlyList) -> {
+      for (HourlyAggregation hourly : hourlyList) {
+        DailyAggregation dailyAgg =
                 DailyAggregation.builder()
-                    .obsDate(yesterday)
-                    .obsHour(hourly.getObsHour())
-                    .sensorName(sensorName)
-                    .sumValue(hourly.getSumValue())
-                    .avgValue(hourly.getAvgValue())
-                    .build();
-            dailyAggregationRepository.save(dailyAgg);
-            log.info(
+                        .obsDate(yesterday)
+                        .obsHour(hourly.getObsHour())
+                        .sensorName(sensorName)
+                        .sumValue(hourly.getSumValue())
+                        .avgValue(hourly.getAvgValue())
+                        .build();
+        dailyAggregationRepository.save(dailyAgg);
+        log.info(
                 "Daily aggregation record saved for {} hour {} sensor {}",
                 yesterday,
                 hourly.getObsHour(),
                 sensorName);
-          }
-        });
+      }
+    });
   }
 
   @Override

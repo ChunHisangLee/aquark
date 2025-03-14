@@ -10,4 +10,6 @@ import org.springframework.stereotype.Repository;
 public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
   List<SensorData> findAllByObsTimeBetweenOrderByObsTimeAsc(
       LocalDateTime obsTimeAfter, LocalDateTime obsTimeBefore);
+
+  boolean existsByStationIdAndObsTime(String stationId, LocalDateTime obsTime);
 }

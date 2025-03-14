@@ -1,39 +1,43 @@
 package com.jack.aquark.dto;
 
+import java.io.Serial;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import lombok.Data;
 
 @Data
 public class SummariesDto implements Serializable {
+  @Serial
   private static final long serialVersionUID = 1L;
+
   // Sum fields for voltage readings
-  private double sumV1;
-  private double sumV2;
-  private double sumV3;
-  private double sumV4;
-  private double sumV5;
-  private double sumV6;
-  private double sumV7;
+  private BigDecimal sumV1;
+  private BigDecimal sumV2;
+  private BigDecimal sumV3;
+  private BigDecimal sumV4;
+  private BigDecimal sumV5;
+  private BigDecimal sumV6;
+  private BigDecimal sumV7;
 
   // Sum fields for other sensor values
-  private double sumRh;
-  private double sumTx;
-  private double sumEcho;
-  private double sumRainD;
-  private double sumSpeed;
+  private BigDecimal sumRh;
+  private BigDecimal sumTx;
+  private BigDecimal sumEcho;
+  private BigDecimal sumRainD;
+  private BigDecimal sumSpeed;
 
   // Average fields for voltage readings
-  private double avgV1;
-  private double avgV2;
-  private double avgV3;
-  private double avgV4;
-  private double avgV5;
-  private double avgV6;
-  private double avgV7;
+  private BigDecimal avgV1;
+  private BigDecimal avgV2;
+  private BigDecimal avgV3;
+  private BigDecimal avgV4;
+  private BigDecimal avgV5;
+  private BigDecimal avgV6;
+  private BigDecimal avgV7;
 
   // Average fields for other sensor values
-  private double avgRh;
-  private double avgTx;
-  private double avgEcho;
-  private double avgSpeed;
+  private BigDecimal avgRh;
+  private BigDecimal avgTx;
+  private BigDecimal avgEcho;
+  private BigDecimal avgSpeed;
 }

@@ -6,7 +6,7 @@ public interface AggregationService {
   void saveHourlyAggregation(HourlyAggregation aggregation);
 
   void aggregateHourlyData();
-  
+
   void aggregateDailyData();
 
   void processTempDataForAggregations();

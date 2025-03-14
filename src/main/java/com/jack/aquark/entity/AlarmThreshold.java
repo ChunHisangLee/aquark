@@ -1,11 +1,13 @@
 package com.jack.aquark.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import lombok.*;
 
 @Entity
 @Table(name = "alarm_threshold")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -18,5 +20,5 @@ public class AlarmThreshold {
   private String sensorName;
 
   @Column(name = "threshold_value", nullable = false)
-  private Double thresholdValue;
+  private BigDecimal thresholdValue;
 }
