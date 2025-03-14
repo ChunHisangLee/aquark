@@ -78,8 +78,7 @@ public class AggregationServiceImpl implements AggregationService {
       return;
     }
 
-    // Group by measurement parameter. Each key in fieldAccessors is the sensor parameter (e.g.,
-    // "v1", "rh", etc.)
+    // Group by measurement parameter. Each key in fieldAccessors is the sensor parameter
     Map<String, Function<TempSensorData, BigDecimal>> fieldAccessors = new LinkedHashMap<>();
     fieldAccessors.put("v1", TempSensorData::getV1);
     fieldAccessors.put("v2", TempSensorData::getV2);
@@ -103,9 +102,8 @@ public class AggregationServiceImpl implements AggregationService {
                   ? BigDecimal.ZERO
                   : sum.divide(BigDecimal.valueOf(values.size()), 2, RoundingMode.HALF_UP);
 
-          // Assume all tempData records in this group belong to the same station and csq.
-          String stationId = tempData.get(0).getStationId();
-          String csq = tempData.get(0).getCsq();
+          String stationId = tempData.getFirst().getStationId();
+          String csq = tempData.getFirst().getCsq();
 
           HourlyAggregation aggregation =
               HourlyAggregation.builder()
@@ -142,46 +140,56 @@ public class AggregationServiceImpl implements AggregationService {
 
     groupByKey.forEach(
         (key, list) -> {
-          BigDecimal dailySum;
-          BigDecimal dailyAvg;
-          if (list.size() == 1) {
-            // If there's only one hourly record, simply use its values.
-            dailySum = list.get(0).getSumValue();
-            dailyAvg = list.get(0).getAvgValue();
-          } else {
-            // If there are multiple records, sum the sums...
-            dailySum =
-                list.stream()
-                    .map(HourlyAggregation::getSumValue)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            // ...and calculate the average of the hourly avg values.
-            dailyAvg =
-                list.stream()
-                    .map(HourlyAggregation::getAvgValue)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add)
-                    .divide(BigDecimal.valueOf(list.size()), 2, RoundingMode.HALF_UP);
-          }
-          // Split the key to retrieve stationId, csq, and sensorName.
+          // Calculate daily aggregation values
+          BigDecimal dailySum =
+              list.stream()
+                  .map(HourlyAggregation::getSumValue)
+                  .reduce(BigDecimal.ZERO, BigDecimal::add);
+          // Here we compute daily average as the arithmetic mean of hourly averages.
+          BigDecimal dailyAvg =
+              list.stream()
+                  .map(HourlyAggregation::getAvgValue)
+                  .reduce(BigDecimal.ZERO, BigDecimal::add)
+                  .divide(BigDecimal.valueOf(list.size()), 2, RoundingMode.HALF_UP);
+
+          // Split the key to retrieve stationId, csq, sensorName.
           String[] parts = key.split("_");
           String stationId = parts[0];
           String csq = parts[1];
           String sensorName = parts[2];
 
-          DailyAggregation dailyAgg =
-              DailyAggregation.builder()
-                  .stationId(stationId)
-                  .csq(csq)
-                  .obsDate(today)
-                  .sensorName(sensorName)
-                  .sumValue(dailySum)
-                  .avgValue(dailyAvg)
-                  .build();
-          dailyAggregationRepository.save(dailyAgg);
-          log.info(
-              "Daily aggregation record saved for station {} parameter {} on {}",
-              stationId,
-              sensorName,
-              today);
+          // Check if a daily aggregation record already exists for this composite key.
+          Optional<DailyAggregation> existingOpt =
+              dailyAggregationRepository.findByStationIdAndObsDateAndCsqAndSensorName(
+                  stationId, today, csq, sensorName);
+
+          if (existingOpt.isPresent()) {
+            DailyAggregation existing = existingOpt.get();
+            existing.setSumValue(dailySum);
+            existing.setAvgValue(dailyAvg);
+            dailyAggregationRepository.save(existing);
+            log.info(
+                "Updated daily aggregation record for station {} parameter {} on {}",
+                stationId,
+                sensorName,
+                today);
+          } else {
+            DailyAggregation dailyAgg =
+                DailyAggregation.builder()
+                    .stationId(stationId)
+                    .csq(csq)
+                    .obsDate(today)
+                    .sensorName(sensorName)
+                    .sumValue(dailySum)
+                    .avgValue(dailyAvg)
+                    .build();
+            dailyAggregationRepository.save(dailyAgg);
+            log.info(
+                "Created daily aggregation record for station {} parameter {} on {}",
+                stationId,
+                sensorName,
+                today);
+          }
         });
   }
 
