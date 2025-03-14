@@ -6,7 +6,9 @@ import java.time.LocalDateTime;
 import lombok.*;
 
 @Entity
-@Table(name = "temp_sensor_data")
+@Table(
+    name = "temp_sensor_data",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"station_id", "obs_time", "csq"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,13 +19,13 @@ public class TempSensorData {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "station_id")
+  @Column(name = "station_id", nullable = false)
   private String stationId;
 
   @Column(name = "obs_time", nullable = false)
   private LocalDateTime obsTime;
 
-  @Column(name = "csq")
+  @Column(name = "csq", nullable = false)
   private String csq;
 
   @Column(name = "v1")

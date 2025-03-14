@@ -7,6 +7,8 @@ import com.jack.aquark.repository.DailyAggregationRepository;
 import com.jack.aquark.repository.HourlyAggregationRepository;
 import com.jack.aquark.repository.TempSensorDataRepository;
 import com.jack.aquark.service.AggregationService;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -15,8 +17,6 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 @Service
 @AllArgsConstructor
@@ -28,33 +28,58 @@ public class AggregationServiceImpl implements AggregationService {
   private final TempSensorDataRepository tempSensorDataRepository;
 
   @Override
-  public void saveHourlyAggregation(HourlyAggregation aggregation) {
-    hourlyAggregationRepository.save(aggregation);
-    log.info(
-            "Saved hourly aggregation for {} hour {} sensor {}: sum={}, avg={}",
+  public void saveOrUpdateHourlyAggregation(HourlyAggregation aggregation) {
+    // Check if an aggregation record already exists for the given composite key.
+    Optional<HourlyAggregation> existingOpt =
+        hourlyAggregationRepository.findByStationIdAndObsDateAndObsHourAndCsqAndSensorName(
+            aggregation.getStationId(),
             aggregation.getObsDate(),
             aggregation.getObsHour(),
-            aggregation.getSensorName(),
-            aggregation.getSumValue(),
-            aggregation.getAvgValue());
+            aggregation.getCsq(),
+            aggregation.getSensorName());
+    if (existingOpt.isPresent()) {
+      HourlyAggregation existing = existingOpt.get();
+      // Update the fields. (Here we simply replace with recalculated values.)
+      existing.setSumValue(aggregation.getSumValue());
+      existing.setAvgValue(aggregation.getAvgValue());
+      hourlyAggregationRepository.save(existing);
+      log.info(
+          "Updated hourly aggregation for station {} on {} hour {} sensor {}: sum={}, avg={}",
+          existing.getStationId(),
+          existing.getObsDate(),
+          existing.getObsHour(),
+          existing.getSensorName(),
+          existing.getSumValue(),
+          existing.getAvgValue());
+    } else {
+      hourlyAggregationRepository.save(aggregation);
+      log.info(
+          "Created new hourly aggregation for station {} on {} hour {} sensor {}: sum={}, avg={}",
+          aggregation.getStationId(),
+          aggregation.getObsDate(),
+          aggregation.getObsHour(),
+          aggregation.getSensorName(),
+          aggregation.getSumValue(),
+          aggregation.getAvgValue());
+    }
   }
 
   @Override
   public void aggregateHourlyData() {
-    // Existing aggregation from raw SensorData (if needed)
     LocalDateTime now = LocalDateTime.now();
     LocalDateTime oneHourAgo = now.minusHours(1);
     LocalDate currentDate = now.toLocalDate();
     int currentHour = now.getHour();
 
     List<TempSensorData> tempData =
-            tempSensorDataRepository.findAllByObsTimeBetween(oneHourAgo, now);
+        tempSensorDataRepository.findAllByObsTimeBetween(oneHourAgo, now);
     if (tempData.isEmpty()) {
       log.info("No temporary sensor data available for the last hour.");
       return;
     }
 
-    // Use BigDecimal field accessors
+    // Group by measurement parameter. Each key in fieldAccessors is the sensor parameter (e.g.,
+    // "v1", "rh", etc.)
     Map<String, Function<TempSensorData, BigDecimal>> fieldAccessors = new LinkedHashMap<>();
     fieldAccessors.put("v1", TempSensorData::getV1);
     fieldAccessors.put("v2", TempSensorData::getV2);
@@ -69,76 +94,101 @@ public class AggregationServiceImpl implements AggregationService {
     fieldAccessors.put("rainD", TempSensorData::getRainD);
     fieldAccessors.put("speed", TempSensorData::getSpeed);
 
-    fieldAccessors.forEach((sensorName, getter) -> {
-      List<BigDecimal> values = tempData.stream()
-              .map(getter)
-              .filter(Objects::nonNull)
-              .toList();
+    fieldAccessors.forEach(
+        (parameter, getter) -> {
+          List<BigDecimal> values = tempData.stream().map(getter).filter(Objects::nonNull).toList();
+          BigDecimal sum = values.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+          BigDecimal avg =
+              values.isEmpty()
+                  ? BigDecimal.ZERO
+                  : sum.divide(BigDecimal.valueOf(values.size()), 2, RoundingMode.HALF_UP);
 
-      BigDecimal sum = values.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
-      BigDecimal avg = values.isEmpty()
-              ? BigDecimal.ZERO
-              : sum.divide(BigDecimal.valueOf(values.size()), 2, RoundingMode.HALF_UP);
+          // Assume all tempData records in this group belong to the same station and csq.
+          String stationId = tempData.get(0).getStationId();
+          String csq = tempData.get(0).getCsq();
 
-      HourlyAggregation aggregation =
+          HourlyAggregation aggregation =
               HourlyAggregation.builder()
-                      .obsDate(currentDate)
-                      .obsHour(currentHour)
-                      .sensorName(sensorName)
-                      .sumValue(sum)
-                      .avgValue(avg)
-                      .build();
+                  .stationId(stationId)
+                  .csq(csq)
+                  .obsDate(currentDate)
+                  .obsHour(currentHour)
+                  .sensorName(parameter)
+                  .sumValue(sum)
+                  .avgValue(avg)
+                  .build();
 
-      saveHourlyAggregation(aggregation);
-    });
+          saveOrUpdateHourlyAggregation(aggregation);
+        });
   }
 
   @Override
   public void aggregateDailyData() {
-    LocalDate yesterday = LocalDate.now().minusDays(1);
-    log.info("Building daily aggregation for {}", yesterday);
+    LocalDate today = LocalDate.now();
+    log.info("Building daily aggregation for {}", today);
 
-    // Retrieve all hourly aggregations for yesterday.
-    List<HourlyAggregation> hourlyAggregations =
-            hourlyAggregationRepository.findByObsDate(yesterday);
+    List<HourlyAggregation> hourlyAggregations = hourlyAggregationRepository.findByObsDate(today);
     if (hourlyAggregations.isEmpty()) {
-      log.warn("No hourly aggregation records found for {}", yesterday);
+      log.warn("No hourly aggregation records found for {}", today);
       return;
     }
 
-    Map<String, List<HourlyAggregation>> sensorToHourly =
-            hourlyAggregations.stream()
-                    .collect(Collectors.groupingBy(HourlyAggregation::getSensorName));
+    // Group by composite key: stationId, csq, sensorName.
+    Map<String, List<HourlyAggregation>> groupByKey =
+        hourlyAggregations.stream()
+            .collect(
+                Collectors.groupingBy(
+                    ha -> ha.getStationId() + "_" + ha.getCsq() + "_" + ha.getSensorName()));
 
-    sensorToHourly.forEach((sensorName, hourlyList) -> {
-      for (HourlyAggregation hourly : hourlyList) {
-        DailyAggregation dailyAgg =
-                DailyAggregation.builder()
-                        .obsDate(yesterday)
-                        .obsHour(hourly.getObsHour())
-                        .sensorName(sensorName)
-                        .sumValue(hourly.getSumValue())
-                        .avgValue(hourly.getAvgValue())
-                        .build();
-        dailyAggregationRepository.save(dailyAgg);
-        log.info(
-                "Daily aggregation record saved for {} hour {} sensor {}",
-                yesterday,
-                hourly.getObsHour(),
-                sensorName);
-      }
-    });
+    groupByKey.forEach(
+        (key, list) -> {
+          BigDecimal dailySum;
+          BigDecimal dailyAvg;
+          if (list.size() == 1) {
+            // If there's only one hourly record, simply use its values.
+            dailySum = list.get(0).getSumValue();
+            dailyAvg = list.get(0).getAvgValue();
+          } else {
+            // If there are multiple records, sum the sums...
+            dailySum =
+                list.stream()
+                    .map(HourlyAggregation::getSumValue)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            // ...and calculate the average of the hourly avg values.
+            dailyAvg =
+                list.stream()
+                    .map(HourlyAggregation::getAvgValue)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .divide(BigDecimal.valueOf(list.size()), 2, RoundingMode.HALF_UP);
+          }
+          // Split the key to retrieve stationId, csq, and sensorName.
+          String[] parts = key.split("_");
+          String stationId = parts[0];
+          String csq = parts[1];
+          String sensorName = parts[2];
+
+          DailyAggregation dailyAgg =
+              DailyAggregation.builder()
+                  .stationId(stationId)
+                  .csq(csq)
+                  .obsDate(today)
+                  .sensorName(sensorName)
+                  .sumValue(dailySum)
+                  .avgValue(dailyAvg)
+                  .build();
+          dailyAggregationRepository.save(dailyAgg);
+          log.info(
+              "Daily aggregation record saved for station {} parameter {} on {}",
+              stationId,
+              sensorName,
+              today);
+        });
   }
 
   @Override
   public void processTempDataForAggregations() {
-    // First, aggregate hourly data from the temporary table.
     aggregateHourlyData();
-
-    // Then, aggregate daily data from the hourly aggregation table.
     aggregateDailyData();
-
-    // Finally, clear the temporary table for the next fetch cycle.
     tempSensorDataRepository.deleteAll();
     log.info("Temporary sensor data cleared after processing aggregations.");
   }

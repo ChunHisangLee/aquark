@@ -8,9 +8,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface TempSensorDataRepository extends JpaRepository<TempSensorData, Long> {
-  // Find temp sensor data in a given time range (if needed)
   List<TempSensorData> findAllByObsTimeBetween(LocalDateTime start, LocalDateTime end);
 
-  // Delete all records (for clearing the temp table after processing)
   void deleteAll();
 }

@@ -30,7 +30,7 @@ public class AlarmThresholdController {
 
   @Operation(
       summary = "Get Alarm Threshold",
-      description = "Retrieves the alarm threshold for a given sensor type.")
+      description = "Retrieves the alarm threshold for a given station, csq, and sensor parameter.")
   @ApiResponses({
     @ApiResponse(
         responseCode = MessagesConstants.STATUS_200,
@@ -38,24 +38,24 @@ public class AlarmThresholdController {
         content = @Content(schema = @Schema(implementation = AlarmThreshold.class))),
     @ApiResponse(
         responseCode = MessagesConstants.STATUS_404,
-        description = "Threshold not found for the given sensor type",
+        description = "Threshold not found for the given combination",
         content = @Content(schema = @Schema(implementation = String.class)))
   })
-  @GetMapping("/{sensorName}")
+  @GetMapping
   public ResponseEntity<AlarmThreshold> getThreshold(
-      @Parameter(
-              example = "v1",
-              description =
-                  "The sensor type (e.g., 'v1', 'rh', etc.) for which to retrieve the threshold")
-          @PathVariable
-          String sensorName) {
-    AlarmThreshold threshold = alarmThresholdService.getThreshold(sensorName);
+      @Parameter(example = "240627", description = "The station ID") @RequestParam String stationId,
+      @Parameter(example = "31", description = "The CSQ value") @RequestParam String csq,
+      @Parameter(example = "v1", description = "The sensor parameter (e.g., 'v1', 'rh', etc.)")
+          @RequestParam
+          String parameter) {
+    AlarmThreshold threshold = alarmThresholdService.getThreshold(stationId, csq, parameter);
     return ResponseEntity.ok(threshold);
   }
 
   @Operation(
       summary = "Update Alarm Threshold",
-      description = "Creates or updates the alarm threshold for a given sensor type.")
+      description =
+          "Creates or updates the alarm threshold for a given station, csq, and sensor parameter.")
   @ApiResponses({
     @ApiResponse(
         responseCode = MessagesConstants.STATUS_200,
@@ -70,7 +70,7 @@ public class AlarmThresholdController {
   public ResponseEntity<ResponseDto> updateThreshold(
       @Parameter(
               description =
-                  "Alarm threshold object containing the sensor type and its threshold value",
+                  "Alarm threshold object containing the station ID, csq, sensor parameter, and threshold value",
               required = true,
               schema = @Schema(implementation = AlarmThreshold.class))
           @RequestBody

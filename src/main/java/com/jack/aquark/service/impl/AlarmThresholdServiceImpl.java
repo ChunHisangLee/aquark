@@ -14,21 +14,29 @@ public class AlarmThresholdServiceImpl implements AlarmThresholdService {
   private final AlarmThresholdRepository alarmThresholdRepository;
 
   @Override
-  public AlarmThreshold getThreshold(String sensorName) {
+  public AlarmThreshold getThreshold(String stationId, String csq, String parameter) {
     return alarmThresholdRepository
-        .findBySensorName(sensorName)
-        .orElseThrow(() -> new RuntimeException("Threshold not found for " + sensorName));
+        .findByStationIdAndCsqAndParameter(stationId, csq, parameter)
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    "Threshold not found for station "
+                        + stationId
+                        + ", csq "
+                        + csq
+                        + ", parameter "
+                        + parameter));
   }
 
   @Override
   public boolean updateThreshold(AlarmThreshold threshold) {
-    AlarmThreshold savedThreshold = alarmThresholdRepository.save(threshold);
-    String message =
-        "Threshold updated for sensor: "
-            + savedThreshold.getSensorName()
-            + " new threshold: "
-            + savedThreshold.getThresholdValue();
-    log.info("Kafka notification sent: {}", message);
+    AlarmThreshold saved = alarmThresholdRepository.save(threshold);
+    log.info(
+        "Threshold updated for station {} parameter {} csq {}: {}",
+        saved.getStationId(),
+        saved.getParameter(),
+        saved.getCsq(),
+        saved.getThresholdValue().toPlainString());
     return true;
   }
 }

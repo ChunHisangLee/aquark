@@ -7,8 +7,7 @@ import lombok.Data;
 
 @Data
 public class SummariesDto implements Serializable {
-  @Serial
-  private static final long serialVersionUID = 1L;
+  @Serial private static final long serialVersionUID = 1L;
 
   // Sum fields for voltage readings
   private BigDecimal sumV1;

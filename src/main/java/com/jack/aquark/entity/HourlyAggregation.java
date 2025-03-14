@@ -6,7 +6,11 @@ import java.time.LocalDate;
 import lombok.*;
 
 @Entity
-@Table(name = "hourly_aggregation")
+@Table(
+    name = "hourly_aggregation",
+    uniqueConstraints =
+        @UniqueConstraint(
+            columnNames = {"station_id", "obs_date", "obs_hour", "csq", "sensor_name"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,22 +21,25 @@ public class HourlyAggregation {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  // Date of aggregation
+  @Column(name = "station_id", nullable = false)
+  private String stationId;
+
   @Column(name = "obs_date", nullable = false)
   private LocalDate obsDate;
 
-  // Aggregated hour (0 - 23)
   @Column(name = "obs_hour", nullable = false)
   private int obsHour;
 
+  @Column(name = "csq", nullable = false)
+  private String csq;
+
+  // The measurement parameter (for example: "v1", "rh", etc.)
   @Column(name = "sensor_name", nullable = false)
   private String sensorName;
 
-  // Sum of the sensor's values in this hour
   @Column(name = "sum_value")
   private BigDecimal sumValue;
 
-  // Average of the sensor's values in this hour
   @Column(name = "avg_value")
   private BigDecimal avgValue;
 }

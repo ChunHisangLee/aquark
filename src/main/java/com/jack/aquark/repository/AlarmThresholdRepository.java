@@ -5,5 +5,6 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AlarmThresholdRepository extends JpaRepository<AlarmThreshold, Long> {
-  Optional<AlarmThreshold> findBySensorName(String sensorName);
+  Optional<AlarmThreshold> findByStationIdAndCsqAndParameter(
+      String stationId, String csq, String parameter);
 }

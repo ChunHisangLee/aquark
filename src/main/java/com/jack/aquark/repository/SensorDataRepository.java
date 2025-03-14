@@ -11,5 +11,5 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
   List<SensorData> findAllByObsTimeBetweenOrderByObsTimeAsc(
       LocalDateTime obsTimeAfter, LocalDateTime obsTimeBefore);
 
-  boolean existsByStationIdAndObsTime(String stationId, LocalDateTime obsTime);
+  boolean existsByStationIdAndObsTimeAndCsq(String stationId, LocalDateTime obsTime, String csq);
 }
