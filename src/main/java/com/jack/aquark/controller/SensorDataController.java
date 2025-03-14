@@ -163,25 +163,6 @@ public class SensorDataController {
     return ResponseEntity.ok(summariesDto);
   }
 
-  @Operation(summary = "Get all data in time range (no classification)")
-  @GetMapping("/time-range")
-  public ResponseEntity<List<SensorData>> getDataInTimeRange(
-      @Parameter(
-              example = "2025-03-11 15:48",
-              description = "Start date and time in the format yyyy-MM-dd HH:mm")
-          @RequestParam
-          @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm")
-          LocalDateTime start,
-      @Parameter(
-              example = "2025-03-11 23:59",
-              description = "End date and time in the format yyyy-MM-dd HH:mm")
-          @RequestParam
-          @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm")
-          LocalDateTime end) {
-    List<SensorData> result = sensorDataService.getSensorDataByTimeRange(start, end);
-    return ResponseEntity.ok(result);
-  }
-
   @Operation(summary = "Get peak-time data in time range")
   @GetMapping("/peak")
   public ResponseEntity<List<SensorData>> getPeakData(

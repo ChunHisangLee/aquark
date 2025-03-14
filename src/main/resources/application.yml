@@ -32,8 +32,8 @@ springdoc:
 
 
 scheduling:
-  cron: "0 1/10 * * * ?"
-  intervalMinutes: 10
+  cron: "0 0/2 * * * ?"
+  intervalMinutes: 2
 
 
 api:
