@@ -28,10 +28,7 @@ public class AggregationServiceImpl implements AggregationService {
   private final DailyAggregationRepository dailyAggregationRepository;
   private final TempSensorDataRepository tempSensorDataRepository;
 
-  // ------------------------------
-  // 1) MAPPINGS FOR HOURLY
-  // ------------------------------
-  // Define a static list describing how to handle each sensor.
+  // MAPPINGS FOR HOURLY
   private static final List<HourlySensorMapping> HOURLY_FIELDS =
       List.of(
           new HourlySensorMapping(
@@ -83,9 +80,7 @@ public class AggregationServiceImpl implements AggregationService {
               HourlyAggregation::setSpeedSumValue,
               HourlyAggregation::setSpeedAvgValue));
 
-  // ------------------------------
-  // 2) MAPPINGS FOR DAILY
-  // ------------------------------
+  // MAPPINGS FOR DAILY
   private static final List<DailySensorMapping> DAILY_FIELDS =
       List.of(
           new DailySensorMapping(
@@ -148,10 +143,6 @@ public class AggregationServiceImpl implements AggregationService {
               HourlyAggregation::getSpeedAvgValue,
               DailyAggregation::setSpeedSumValue,
               DailyAggregation::setSpeedAvgValue));
-
-  // -------------------------------------------------------------------------
-  // Implementation of AggregationService
-  // -------------------------------------------------------------------------
 
   @Override
   @Transactional
