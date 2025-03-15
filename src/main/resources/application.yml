@@ -32,7 +32,7 @@ springdoc:
 
 
 scheduling:
-  cron: "0 0/2 * * * ?"
+  cron: "0 0/5 * * * ?"
   intervalMinutes: 2
 
 

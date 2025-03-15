@@ -10,8 +10,6 @@ import java.util.List;
 public interface SensorDataService {
   void fetchAndSaveSensorData(String apiUrl);
 
-  void saveRawData(RawDataWrapperDto wrapper);
-
   RawDataWrapperDto fetchRawDataFromUrl(String url);
 
   SummariesDto getSummaries(LocalDateTime start, LocalDateTime end);

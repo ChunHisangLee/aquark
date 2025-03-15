@@ -130,65 +130,6 @@ public class SensorDataServiceImpl implements SensorDataService {
   }
 
   @Override
-  public void saveRawData(RawDataWrapperDto wrapper) {
-    if (wrapper == null || wrapper.getRaw() == null) {
-      return;
-    }
-
-    for (RawDataItemDto item : wrapper.getRaw()) {
-      try {
-        LocalDateTime obsTime = LocalDateTime.parse(item.getObsTime(), formatter);
-
-        SensorData.SensorDataBuilder builder =
-            SensorData.builder()
-                .stationId(item.getStationId())
-                .obsTime(obsTime)
-                .csq(item.getCsq())
-                .rainD(item.getRainD());
-
-        populateSensorFields(item.getSensor(), builder);
-
-        SensorData sensorData = builder.build();
-        sensorDataRepository.save(sensorData);
-      } catch (Exception e) {
-        log.error("Error Saving Raw Data: {}", item, e);
-      }
-    }
-  }
-
-  private void populateSensorFields(
-      RawDataItemDto.Sensor sensor, SensorData.SensorDataBuilder builder) {
-    if (sensor != null) {
-      if (sensor.getVolt() != null) {
-        builder
-            .v1(sensor.getVolt().getV1())
-            .v2(sensor.getVolt().getV2())
-            .v3(sensor.getVolt().getV3())
-            .v4(sensor.getVolt().getV4())
-            .v5(sensor.getVolt().getV5())
-            .v6(sensor.getVolt().getV6())
-            .v7(sensor.getVolt().getV7());
-      }
-      if (sensor.getStickTxRh() != null) {
-        builder.rh(sensor.getStickTxRh().getRh()).tx(sensor.getStickTxRh().getTx());
-      }
-
-      if (sensor.getUltrasonicLevel() != null) {
-        builder.echo(sensor.getUltrasonicLevel().getEcho());
-      }
-
-      if (sensor.getWaterSpeedAquark() != null) {
-        BigDecimal speed = sensor.getWaterSpeedAquark().getSpeed();
-
-        if (speed != null) {
-          // Assuming you want the absolute value
-          builder.speed(speed.abs());
-        }
-      }
-    }
-  }
-
-  @Override
   public RawDataWrapperDto fetchRawDataFromUrl(String url) {
     RestTemplate restTemplate = new RestTemplate();
     ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
