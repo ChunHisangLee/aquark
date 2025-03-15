@@ -40,32 +40,34 @@ public class SensorDataServiceImpl implements SensorDataService {
   public void fetchAndSaveSensorData(String apiUrl) {
     try {
       RawDataWrapperDto wrapper = fetchRawDataFromUrl(apiUrl);
-      if (wrapper != null && wrapper.getRaw() != null) {
-        for (RawDataItemDto item : wrapper.getRaw()) {
-          try {
-            LocalDateTime obsTime = LocalDateTime.parse(item.getObsTime(), formatter);
-            String stationId = item.getStationId();
-            String csq = item.getCsq();
+      if (wrapper == null || wrapper.getRaw() == null || wrapper.getRaw().isEmpty()) {
+        log.warn("No raw sensor data found in the response from URL: {}", apiUrl);
+        return;
+      }
+      for (RawDataItemDto item : wrapper.getRaw()) {
+        try {
+          LocalDateTime obsTime = LocalDateTime.parse(item.getObsTime(), formatter);
+          String stationId = item.getStationId();
+          String csq = item.getCsq();
 
-            // Check duplicate using stationId, obsTime, and csq.
-            if (sensorDataRepository.existsByStationIdAndObsTimeAndCsq(stationId, obsTime, csq)) {
-              log.info(
-                  "Duplicate record found for station {} at {} with csq {}. Skipping.",
-                  stationId,
-                  obsTime,
-                  csq);
-              continue;
-            }
-
-            SensorData data = parseSensorData(item);
-            sensorDataRepository.save(data);
-
-            // Also save to temp table.
-            TempSensorData tempData = parseTempSensorData(item);
-            tempSensorDataRepository.save(tempData);
-          } catch (Exception e) {
-            log.error("Error processing sensor data item: {}", item, e);
+          // Check duplicate using stationId, obsTime, and csq.
+          if (sensorDataRepository.existsByStationIdAndObsTimeAndCsq(stationId, obsTime, csq)) {
+            log.info(
+                "Duplicate record found for station {} at {} with csq {}. Skipping.",
+                stationId,
+                obsTime,
+                csq);
+            continue;
           }
+
+          SensorData data = parseSensorData(item);
+          sensorDataRepository.save(data);
+
+          // Also save to temp table.
+          TempSensorData tempData = parseTempSensorData(item);
+          tempSensorDataRepository.save(tempData);
+        } catch (Exception e) {
+          log.error("Error processing sensor data item: {}", item, e);
         }
       }
     } catch (Exception e) {
@@ -134,6 +136,13 @@ public class SensorDataServiceImpl implements SensorDataService {
     RestTemplate restTemplate = new RestTemplate();
     ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
 
+    // Check if HTTP response is successful
+    if (!response.getStatusCode().is2xxSuccessful()) {
+      log.error(
+          "Failed to fetch data from URL: {}. HTTP Status: {}", url, response.getStatusCode());
+      throw new RuntimeException("Failed to fetch data from URL: " + url);
+    }
+
     try {
       return objectMapper.readValue(response.getBody(), RawDataWrapperDto.class);
     } catch (Exception e) {
@@ -151,7 +160,7 @@ public class SensorDataServiceImpl implements SensorDataService {
       return new SummariesDto();
     }
 
-    // Initialize sums as BigDecimal.ZERO and counts as ints
+    // Initialize sums and counts
     BigDecimal sumV1 = BigDecimal.ZERO,
         sumV2 = BigDecimal.ZERO,
         sumV3 = BigDecimal.ZERO,
@@ -212,11 +221,8 @@ public class SensorDataServiceImpl implements SensorDataService {
         sumSpeed = sumSpeed.add(s.getSpeed());
         countSpeed++;
       }
-      if (s.getRainD() != null) {
-        // Use maxRainD as the maximum rain value recorded
-        if (s.getRainD().compareTo(maxRainD) > 0) {
-          maxRainD = s.getRainD();
-        }
+      if (s.getRainD() != null && s.getRainD().compareTo(maxRainD) > 0) {
+        maxRainD = s.getRainD();
       }
     }
 
@@ -234,7 +240,6 @@ public class SensorDataServiceImpl implements SensorDataService {
     summariesDto.setSumSpeed(sumSpeed);
     summariesDto.setSumRainD(maxRainD);
 
-    // Calculate averages with scale 2 and HALF_UP rounding
     summariesDto.setAvgV1(
         countV1 == 0
             ? BigDecimal.ZERO
@@ -291,7 +296,6 @@ public class SensorDataServiceImpl implements SensorDataService {
 
   @Override
   public List<HourlyAggregation> getHourlyAverage(LocalDateTime start, LocalDateTime end) {
-    // Convert the LocalDateTime parameters to LocalDate.
     LocalDate startDate = start.toLocalDate();
     LocalDate endDate = end.toLocalDate();
     return hourlyAggregationRepository.findByObsDateBetween(startDate, endDate);
@@ -321,15 +325,9 @@ public class SensorDataServiceImpl implements SensorDataService {
     LocalTime endPeak = LocalTime.of(17, 30);
 
     return switch (day) {
-      case MONDAY, TUESDAY, WEDNESDAY ->
-          // Peak if 07:30 <= time < 17:30
-          !time.isBefore(startPeak) && time.isBefore(endPeak);
-      case THURSDAY, FRIDAY ->
-          // Peak all day
-          true;
-      case SATURDAY, SUNDAY ->
-          // Off-peak all day
-          false;
+      case MONDAY, TUESDAY, WEDNESDAY -> !time.isBefore(startPeak) && time.isBefore(endPeak);
+      case THURSDAY, FRIDAY -> true;
+      case SATURDAY, SUNDAY -> false;
     };
   }
 }
