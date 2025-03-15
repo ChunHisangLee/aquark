@@ -1,8 +1,10 @@
 package com.jack.aquark.service.impl;
 
 import com.jack.aquark.entity.AlarmThreshold;
+import com.jack.aquark.exception.ThresholdNotFoundException;
 import com.jack.aquark.repository.AlarmThresholdRepository;
 import com.jack.aquark.service.AlarmThresholdService;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,7 +21,7 @@ public class AlarmThresholdServiceImpl implements AlarmThresholdService {
         .findByStationIdAndCsqAndParameter(stationId, csq, parameter)
         .orElseThrow(
             () ->
-                new RuntimeException(
+                new ThresholdNotFoundException(
                     "Threshold not found for station "
                         + stationId
                         + ", csq "
@@ -30,7 +32,23 @@ public class AlarmThresholdServiceImpl implements AlarmThresholdService {
 
   @Override
   public boolean updateThreshold(AlarmThreshold threshold) {
-    AlarmThreshold saved = alarmThresholdRepository.save(threshold);
+    Optional<AlarmThreshold> existingOpt =
+        alarmThresholdRepository.findByStationIdAndCsqAndParameter(
+            threshold.getStationId(), threshold.getCsq(), threshold.getParameter());
+
+    if (existingOpt.isEmpty()) {
+      throw new ThresholdNotFoundException(
+          "Threshold not found for station "
+              + threshold.getStationId()
+              + ", csq "
+              + threshold.getCsq()
+              + ", parameter "
+              + threshold.getParameter());
+    }
+
+    AlarmThreshold existing = existingOpt.get();
+    existing.setThresholdValue(threshold.getThresholdValue());
+    AlarmThreshold saved = alarmThresholdRepository.save(existing);
     log.info(
         "Threshold updated for station {} parameter {} csq {}: {}",
         saved.getStationId(),

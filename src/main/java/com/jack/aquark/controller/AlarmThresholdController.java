@@ -11,19 +11,22 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(
     name = "Alarm Threshold API",
     description = "REST APIs for retrieving and updating sensor alarm thresholds")
 @RestController
-@Slf4j
 @RequestMapping("/api/alarm")
 @RequiredArgsConstructor
+@Slf4j
+@Validated
 public class AlarmThresholdController {
 
   private final AlarmThresholdService alarmThresholdService;
@@ -49,6 +52,9 @@ public class AlarmThresholdController {
           @RequestParam
           String parameter) {
     AlarmThreshold threshold = alarmThresholdService.getThreshold(stationId, csq, parameter);
+    if (threshold == null) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
     return ResponseEntity.ok(threshold);
   }
 
@@ -62,19 +68,12 @@ public class AlarmThresholdController {
         description = "Threshold updated successfully",
         content = @Content(schema = @Schema(implementation = AlarmThreshold.class))),
     @ApiResponse(
-        responseCode = MessagesConstants.STATUS_500,
+        responseCode = MessagesConstants.STATUS_417,
         description = "Internal Server Error",
         content = @Content(schema = @Schema(implementation = String.class)))
   })
   @PostMapping("/update")
-  public ResponseEntity<ResponseDto> updateThreshold(
-      @Parameter(
-              description =
-                  "Alarm threshold object containing the station ID, csq, sensor parameter, and threshold value",
-              required = true,
-              schema = @Schema(implementation = AlarmThreshold.class))
-          @RequestBody
-          AlarmThreshold threshold) {
+  public ResponseEntity<ResponseDto> updateThreshold(@Valid @RequestBody AlarmThreshold threshold) {
 
     boolean isUpdated = alarmThresholdService.updateThreshold(threshold);
 
