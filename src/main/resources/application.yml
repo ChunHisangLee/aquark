@@ -18,6 +18,11 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+      password: ${SPRING_REDIS_PASSWORD:}
 
 logging:
   level:
@@ -32,7 +37,7 @@ springdoc:
 
 
 scheduling:
-  cron: "0 0 0/1 * * ?"
+  cron: "0 5/1 * * * ?"
 
 
 api:

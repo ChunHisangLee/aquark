@@ -4,19 +4,23 @@ import com.jack.aquark.dto.DailySensorMapping;
 import com.jack.aquark.dto.HourlySensorMapping;
 import com.jack.aquark.entity.DailyAggregation;
 import com.jack.aquark.entity.HourlyAggregation;
+import com.jack.aquark.entity.SensorData;
 import com.jack.aquark.entity.TempSensorData;
 import com.jack.aquark.repository.DailyAggregationRepository;
 import com.jack.aquark.repository.HourlyAggregationRepository;
+import com.jack.aquark.repository.SensorDataRepository;
 import com.jack.aquark.repository.TempSensorDataRepository;
 import com.jack.aquark.service.AggregationService;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -27,6 +31,7 @@ public class AggregationServiceImpl implements AggregationService {
   private final HourlyAggregationRepository hourlyAggregationRepository;
   private final DailyAggregationRepository dailyAggregationRepository;
   private final TempSensorDataRepository tempSensorDataRepository;
+  private final SensorDataRepository sensorDataRepository;
 
   // MAPPINGS FOR HOURLY
   private static final List<HourlySensorMapping> HOURLY_FIELDS =
@@ -356,5 +361,12 @@ public class AggregationServiceImpl implements AggregationService {
     // 3) Optionally clear the raw data
     tempSensorDataRepository.deleteAll();
     log.info("Temporary sensor data cleared after daily aggregation.");
+  }
+
+  @Override
+  @Cacheable(value = "sensorData", key = "#start.toString() + '_' + #end.toString()")
+  public List<SensorData> getSensorDataByTimeRange(LocalDateTime start, LocalDateTime end) {
+    log.info("Querying DB for sensor data between {} and {}", start, end);
+    return sensorDataRepository.findAllByObsTimeBetweenOrderByObsTimeAsc(start, end);
   }
 }

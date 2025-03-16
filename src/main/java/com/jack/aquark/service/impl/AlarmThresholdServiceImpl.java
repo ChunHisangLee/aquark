@@ -7,6 +7,8 @@ import com.jack.aquark.service.AlarmThresholdService;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,6 +18,7 @@ public class AlarmThresholdServiceImpl implements AlarmThresholdService {
   private final AlarmThresholdRepository alarmThresholdRepository;
 
   @Override
+  @Cacheable(value = "thresholds", key = "#stationId + '_' + #csq + '_' + #parameter")
   public AlarmThreshold getThreshold(String stationId, String csq, String parameter) {
     return alarmThresholdRepository
         .findByStationIdAndCsqAndParameter(stationId, csq, parameter)
@@ -31,6 +34,7 @@ public class AlarmThresholdServiceImpl implements AlarmThresholdService {
   }
 
   @Override
+  @CacheEvict(value = "thresholds", key = "#threshold.stationId + '_' + #threshold.csq + '_' + #threshold.parameter")
   public boolean updateThreshold(AlarmThreshold threshold) {
     Optional<AlarmThreshold> existingOpt =
         alarmThresholdRepository.findByStationIdAndCsqAndParameter(

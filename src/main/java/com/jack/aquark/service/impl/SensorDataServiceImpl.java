@@ -9,6 +9,7 @@ import com.jack.aquark.entity.TempSensorData;
 import com.jack.aquark.repository.HourlyAggregationRepository;
 import com.jack.aquark.repository.SensorDataRepository;
 import com.jack.aquark.repository.TempSensorDataRepository;
+import com.jack.aquark.service.AggregationService;
 import com.jack.aquark.service.SensorDataService;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -19,6 +20,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -31,9 +34,13 @@ public class SensorDataServiceImpl implements SensorDataService {
   private final TempSensorDataRepository tempSensorDataRepository;
   private final HourlyAggregationRepository hourlyAggregationRepository;
   private final ObjectMapper objectMapper;
+  private final AggregationService aggregationService;
   private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
   @Override
+  @CacheEvict(
+      value = {"sensorData", "hourlyAggregation"},
+      allEntries = true)
   public void fetchAndSaveSensorData(String apiUrl) {
     try {
       RawDataWrapperDto wrapper = fetchRawDataFromUrl(apiUrl);
@@ -147,13 +154,11 @@ public class SensorDataServiceImpl implements SensorDataService {
       throw new RuntimeException("Failed to parse JSON", e);
     }
   }
-  @Override
-  public List<SensorData> getSensorDataByTimeRange(LocalDateTime start, LocalDateTime end) {
-    log.info("Querying DB for sensor data between {} and {}", start, end);
-    return sensorDataRepository.findAllByObsTimeBetweenOrderByObsTimeAsc(start, end);
-  }
 
   @Override
+  @Cacheable(
+      value = "hourlyAggregation",
+      key = "#start.toLocalDate().toString() + '_' + #end.toLocalDate().toString()")
   public List<HourlyAggregation> getHourlyAverage(LocalDateTime start, LocalDateTime end) {
     LocalDate startDate = start.toLocalDate();
     LocalDate endDate = end.toLocalDate();
@@ -162,7 +167,7 @@ public class SensorDataServiceImpl implements SensorDataService {
 
   @Override
   public List<SensorData> getPeakTimeData(LocalDateTime start, LocalDateTime end) {
-    List<SensorData> allData = getSensorDataByTimeRange(start, end);
+    List<SensorData> allData = aggregationService.getSensorDataByTimeRange(start, end);
     return allData.stream()
         .filter(data -> isPeakTime(data.getObsTime()))
         .collect(Collectors.toList());
@@ -170,7 +175,7 @@ public class SensorDataServiceImpl implements SensorDataService {
 
   @Override
   public List<SensorData> getOffPeakTimeData(LocalDateTime start, LocalDateTime end) {
-    List<SensorData> allData = getSensorDataByTimeRange(start, end);
+    List<SensorData> allData = aggregationService.getSensorDataByTimeRange(start, end);
     return allData.stream()
         .filter(data -> !isPeakTime(data.getObsTime()))
         .collect(Collectors.toList());

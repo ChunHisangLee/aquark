@@ -12,20 +12,18 @@ import com.jack.aquark.entity.TempSensorData;
 import com.jack.aquark.repository.HourlyAggregationRepository;
 import com.jack.aquark.repository.SensorDataRepository;
 import com.jack.aquark.repository.TempSensorDataRepository;
-import java.time.LocalDate;
+import com.jack.aquark.service.AggregationService;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 public class SensorDataServiceImplTest {
-
-  @InjectMocks private SensorDataServiceImpl sensorDataServiceImpl;
 
   @Mock private SensorDataRepository sensorDataRepository;
 
@@ -33,154 +31,182 @@ public class SensorDataServiceImplTest {
 
   @Mock private HourlyAggregationRepository hourlyAggregationRepository;
 
+  @Mock private AggregationService aggregationService;
+
+  @InjectMocks private SensorDataServiceImpl sensorDataService;
+
+  private AutoCloseable closeable;
+
   @BeforeEach
-  void setUp() {}
+  public void setup() {
+    closeable = MockitoAnnotations.openMocks(this);
+    // sensorDataService is auto-created with the @InjectMocks annotation.
+  }
+
+  @AfterEach
+  public void tearDown() throws Exception {
+    closeable.close();
+  }
 
   @Test
-  void testFetchAndSaveSensorData_Success() {
-    // Use a spy to override fetchRawDataFromUrl so that it does not perform an actual HTTP call.
-    SensorDataServiceImpl spyService = spy(sensorDataServiceImpl);
-
-    // Prepare a raw data item with valid values.
+  public void testFetchAndSaveSensorData_withValidData() {
+    // Create a dummy RawDataItemDto with required fields.
     RawDataItemDto item = new RawDataItemDto();
-    item.setStationId("stationA");
-    item.setCsq("31");
-    item.setObsTime("2025-03-11 10:15:00");
-    // In this example, we leave the sensor as null (so parse methods will produce a
-    // SensorData/TempSensorData with null sensor fields).
+    item.setObsTime("2025-03-16 10:00:00");
+    item.setStationId("station1");
+    item.setCsq("csq1");
+    item.setRainD(BigDecimal.ZERO);
 
+    // Prepare a dummy sensor object with nested volt data.
+    RawDataItemDto.Sensor sensor = new RawDataItemDto.Sensor();
+    RawDataItemDto.Volt volt = new RawDataItemDto.Volt();
+    volt.setV1(BigDecimal.ONE);
+    volt.setV2(BigDecimal.valueOf(2.0));
+    volt.setV3(BigDecimal.valueOf(3.0));
+    volt.setV4(BigDecimal.valueOf(4.0));
+    volt.setV5(BigDecimal.valueOf(5.0));
+    volt.setV6(BigDecimal.valueOf(6.0));
+    volt.setV7(BigDecimal.valueOf(7.0));
+    sensor.setVolt(volt);
+    // For simplicity, other nested objects (stickTxRh, ultrasonicLevel, waterSpeedAquark) are left
+    // null.
+    item.setSensor(sensor);
+
+    // Wrap the item in a RawDataWrapperDto.
     RawDataWrapperDto wrapper = new RawDataWrapperDto();
-    wrapper.setRaw(List.of(item));
+    wrapper.setRaw(Collections.singletonList(item));
 
-    // Stub the fetchRawDataFromUrl to return our prepared wrapper.
+    // Spy on the service to override fetchRawDataFromUrl.
+    SensorDataServiceImpl spyService = spy(sensorDataService);
     doReturn(wrapper).when(spyService).fetchRawDataFromUrl(anyString());
 
-    // Simulate that no duplicate exists.
+    // Simulate that no duplicate record exists.
     when(sensorDataRepository.existsByStationIdAndObsTimeAndCsq(
-            eq("stationA"), eq(LocalDateTime.of(2025, 3, 11, 10, 15)), eq("31")))
+            eq("station1"), any(LocalDateTime.class), eq("csq1")))
         .thenReturn(false);
 
-    // Call the method under test.
-    spyService.fetchAndSaveSensorData("http://mock-api/sensor");
+    spyService.fetchAndSaveSensorData("http://dummyurl");
 
-    // Verify that both sensorDataRepository and tempSensorDataRepository saved one record.
+    // Verify that sensor data and temporary sensor data are saved.
     verify(sensorDataRepository, times(1)).save(any(SensorData.class));
     verify(tempSensorDataRepository, times(1)).save(any(TempSensorData.class));
   }
 
   @Test
-  void testFetchAndSaveSensorData_Duplicate() {
-    // Test the case when the record already exists, so saving should be skipped.
-    SensorDataServiceImpl spyService = spy(sensorDataServiceImpl);
-
+  public void testFetchAndSaveSensorData_withDuplicateData() {
+    // Create a fake RawDataItemDto.
     RawDataItemDto item = new RawDataItemDto();
-    item.setStationId("stationA");
-    item.setCsq("31");
-    item.setObsTime("2025-03-11 10:15:00");
-    item.setSensor(null);
+    item.setObsTime("2025-03-16 11:00:00");
+    item.setStationId("station1");
+    item.setCsq("csq1");
+    item.setRainD(BigDecimal.ZERO);
+    RawDataItemDto.Sensor sensor = new RawDataItemDto.Sensor();
+    item.setSensor(sensor);
 
     RawDataWrapperDto wrapper = new RawDataWrapperDto();
-    wrapper.setRaw(List.of(item));
+    wrapper.setRaw(Collections.singletonList(item));
 
+    SensorDataServiceImpl spyService = spy(sensorDataService);
     doReturn(wrapper).when(spyService).fetchRawDataFromUrl(anyString());
 
-    // Simulate duplicate exists.
+    // Simulate that a duplicate record exists.
     when(sensorDataRepository.existsByStationIdAndObsTimeAndCsq(
-            eq("stationA"), eq(LocalDateTime.of(2025, 3, 11, 10, 15)), eq("31")))
+            eq("station1"), any(LocalDateTime.class), eq("csq1")))
         .thenReturn(true);
 
-    spyService.fetchAndSaveSensorData("http://mock-api/sensor");
+    spyService.fetchAndSaveSensorData("http://dummyurl");
 
-    // Verify that no save operations occur since the record is a duplicate.
+    // Verify that save methods are NOT called due to duplicate check.
     verify(sensorDataRepository, never()).save(any(SensorData.class));
     verify(tempSensorDataRepository, never()).save(any(TempSensorData.class));
   }
 
   @Test
-  void testGetSensorDataByTimeRange() {
-    // Prepare sample SensorData.
-    LocalDateTime start = LocalDateTime.of(2025, 3, 11, 15, 0);
-    LocalDateTime end = LocalDateTime.of(2025, 3, 11, 23, 0);
-    SensorData data = new SensorData();
-    data.setStationId("stationB");
-    data.setObsTime(LocalDateTime.of(2025, 3, 11, 16, 0));
-
-    when(sensorDataRepository.findAllByObsTimeBetweenOrderByObsTimeAsc(start, end))
-        .thenReturn(List.of(data));
-
-    List<SensorData> result = sensorDataServiceImpl.getSensorDataByTimeRange(start, end);
-    assertEquals(1, result.size());
-    assertEquals("stationB", result.getFirst().getStationId());
-    verify(sensorDataRepository).findAllByObsTimeBetweenOrderByObsTimeAsc(start, end);
-  }
-
-  @Test
-  void testGetHourlyAverage() {
-    // Prepare a sample HourlyAggregation.
-    LocalDateTime start = LocalDateTime.of(2025, 3, 11, 0, 0);
-    LocalDateTime end = LocalDateTime.of(2025, 3, 11, 23, 59);
+  public void testGetHourlyAverage() {
+    LocalDateTime start = LocalDateTime.of(2025, 3, 15, 0, 0);
+    LocalDateTime end = LocalDateTime.of(2025, 3, 16, 23, 59);
     HourlyAggregation agg = new HourlyAggregation();
-    agg.setStationId("stationC");
-    agg.setObsDate(LocalDate.of(2025, 3, 11));
-    agg.setCsq("31");
+    List<HourlyAggregation> list = Collections.singletonList(agg);
 
     when(hourlyAggregationRepository.findByObsDateBetween(
-            eq(LocalDate.of(2025, 3, 11)), eq(LocalDate.of(2025, 3, 11))))
-        .thenReturn(List.of(agg));
+            eq(start.toLocalDate()), eq(end.toLocalDate())))
+        .thenReturn(list);
 
-    List<HourlyAggregation> result = sensorDataServiceImpl.getHourlyAverage(start, end);
+    List<HourlyAggregation> result = sensorDataService.getHourlyAverage(start, end);
     assertEquals(1, result.size());
-    assertEquals("stationC", result.getFirst().getStationId());
-    verify(hourlyAggregationRepository)
-        .findByObsDateBetween(LocalDate.of(2025, 3, 11), LocalDate.of(2025, 3, 11));
+    verify(hourlyAggregationRepository, times(1))
+        .findByObsDateBetween(eq(start.toLocalDate()), eq(end.toLocalDate()));
   }
 
   @Test
-  void testGetPeakTimeData() {
-    // Create SensorData with a peak time and an off-peak time.
-    SensorData peakData = new SensorData();
-    // Monday at 10:00 is considered peak (Monday: between 7:30 and 17:30)
-    peakData.setObsTime(LocalDateTime.of(2025, 3, 10, 10, 0));
-    peakData.setStationId("peakStation");
+  public void testGetPeakTimeData() {
+    // Create sample SensorData records with various observation times.
+    SensorData dataPeakMonday =
+        SensorData.builder()
+            .obsTime(LocalDateTime.of(2025, 3, 17, 8, 0)) // Monday at 8:00 (peak)
+            .build();
+    SensorData dataOffPeakMonday =
+        SensorData.builder()
+            .obsTime(LocalDateTime.of(2025, 3, 17, 6, 0)) // Monday at 6:00 (off peak)
+            .build();
+    SensorData dataPeakThursday =
+        SensorData.builder()
+            .obsTime(LocalDateTime.of(2025, 3, 20, 12, 0)) // Thursday (always peak)
+            .build();
+    SensorData dataOffPeakSaturday =
+        SensorData.builder()
+            .obsTime(LocalDateTime.of(2025, 3, 22, 10, 0)) // Saturday (off peak)
+            .build();
 
-    SensorData offPeakData = new SensorData();
-    // Saturday at 12:00 is off-peak
-    offPeakData.setObsTime(LocalDateTime.of(2025, 3, 15, 12, 0));
-    offPeakData.setStationId("offPeakStation");
+    List<SensorData> allData =
+        Arrays.asList(dataPeakMonday, dataOffPeakMonday, dataPeakThursday, dataOffPeakSaturday);
+    when(aggregationService.getSensorDataByTimeRange(
+            any(LocalDateTime.class), any(LocalDateTime.class)))
+        .thenReturn(allData);
 
-    when(sensorDataRepository.findAllByObsTimeBetweenOrderByObsTimeAsc(any(), any()))
-        .thenReturn(List.of(peakData, offPeakData));
+    List<SensorData> peakData =
+        sensorDataService.getPeakTimeData(LocalDateTime.now(), LocalDateTime.now());
 
-    // When requesting data over a range that includes both days.
-    List<SensorData> peakResults =
-        sensorDataServiceImpl.getPeakTimeData(
-            LocalDateTime.of(2025, 3, 9, 0, 0), LocalDateTime.of(2025, 3, 16, 0, 0));
-    // Only the Monday record (peakData) should be returned.
-    assertEquals(1, peakResults.size());
-    assertEquals("peakStation", peakResults.getFirst().getStationId());
+    // Expect only data from Monday at 8:00 and Thursday at 12:00 to be considered peak.
+    assertTrue(peakData.contains(dataPeakMonday));
+    assertTrue(peakData.contains(dataPeakThursday));
+    assertFalse(peakData.contains(dataOffPeakMonday));
+    assertFalse(peakData.contains(dataOffPeakSaturday));
   }
 
   @Test
-  void testGetOffPeakTimeData() {
-    // Create SensorData with a peak time and an off-peak time.
-    SensorData peakData = new SensorData();
-    // Monday at 10:00 is considered peak.
-    peakData.setObsTime(LocalDateTime.of(2025, 3, 10, 10, 0));
-    peakData.setStationId("peakStation");
+  public void testGetOffPeakTimeData() {
+    // Create sample SensorData records.
+    SensorData dataPeakTuesday =
+        SensorData.builder()
+            .obsTime(LocalDateTime.of(2025, 3, 18, 10, 0)) // Tuesday at 10:00 (peak)
+            .build();
+    SensorData dataOffPeakTuesday =
+        SensorData.builder()
+            .obsTime(LocalDateTime.of(2025, 3, 18, 6, 0)) // Tuesday at 6:00 (off peak)
+            .build();
+    SensorData dataPeakFriday =
+        SensorData.builder()
+            .obsTime(LocalDateTime.of(2025, 3, 21, 15, 0)) // Friday (always peak)
+            .build();
+    SensorData dataOffPeakSunday =
+        SensorData.builder()
+            .obsTime(LocalDateTime.of(2025, 3, 23, 14, 0)) // Sunday (off peak)
+            .build();
 
-    SensorData offPeakData = new SensorData();
-    // Saturday at 12:00 is off-peak.
-    offPeakData.setObsTime(LocalDateTime.of(2025, 3, 15, 12, 0));
-    offPeakData.setStationId("offPeakStation");
+    List<SensorData> allData =
+        Arrays.asList(dataPeakTuesday, dataOffPeakTuesday, dataPeakFriday, dataOffPeakSunday);
+    when(aggregationService.getSensorDataByTimeRange(
+            any(LocalDateTime.class), any(LocalDateTime.class)))
+        .thenReturn(allData);
 
-    when(sensorDataRepository.findAllByObsTimeBetweenOrderByObsTimeAsc(any(), any()))
-        .thenReturn(List.of(peakData, offPeakData));
+    List<SensorData> offPeakData =
+        sensorDataService.getOffPeakTimeData(LocalDateTime.now(), LocalDateTime.now());
 
-    List<SensorData> offPeakResults =
-        sensorDataServiceImpl.getOffPeakTimeData(
-            LocalDateTime.of(2025, 3, 9, 0, 0), LocalDateTime.of(2025, 3, 16, 0, 0));
-    // Only the Saturday record (offPeakData) should be returned.
-    assertEquals(1, offPeakResults.size());
-    assertEquals("offPeakStation", offPeakResults.getFirst().getStationId());
+    // Expect only Tuesday at 6:00 and Sunday at 14:00 to be off-peak.
+    assertTrue(offPeakData.contains(dataOffPeakTuesday));
+    assertTrue(offPeakData.contains(dataOffPeakSunday));
+    assertFalse(offPeakData.contains(dataPeakTuesday));
+    assertFalse(offPeakData.contains(dataPeakFriday));
   }
 }

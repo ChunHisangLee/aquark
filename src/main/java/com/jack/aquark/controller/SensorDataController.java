@@ -4,6 +4,7 @@ import com.jack.aquark.constant.MessagesConstants;
 import com.jack.aquark.entity.HourlyAggregation;
 import com.jack.aquark.entity.SensorData;
 import com.jack.aquark.response.ResponseDto;
+import com.jack.aquark.service.AggregationService;
 import com.jack.aquark.service.SensorDataService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 public class SensorDataController {
 
   private final SensorDataService sensorDataService;
+  private final AggregationService aggregationService;
 
   @Operation(
       summary = "Search Sensor Data by Hour",
@@ -60,7 +62,7 @@ public class SensorDataController {
           @DateTimeFormat(pattern = "yyyy-MM-dd HH")
           LocalDateTime end) {
     try {
-      List<SensorData> data = sensorDataService.getSensorDataByTimeRange(start, end);
+      List<SensorData> data = aggregationService.getSensorDataByTimeRange(start, end);
       return ResponseEntity.ok(data);
     } catch (Exception e) {
       log.error("Error searching sensor data for range {} - {}", start, end, e);

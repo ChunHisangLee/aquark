@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.jack.aquark.entity.SensorData;
+import com.jack.aquark.service.AggregationService;
 import com.jack.aquark.service.SensorDataService;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,7 +22,7 @@ class SensorDataControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
-  @MockBean private SensorDataService sensorDataService;
+  @MockBean private AggregationService aggregationService;
 
   @Test
   void testSearchSensorData_Success() throws Exception {
@@ -31,7 +32,7 @@ class SensorDataControllerTest {
     mockData.setCsq("31");
     mockData.setObsTime(LocalDateTime.of(2025, 3, 11, 15, 0));
 
-    Mockito.when(sensorDataService.getSensorDataByTimeRange(any(), any()))
+    Mockito.when(aggregationService.getSensorDataByTimeRange(any(), any()))
         .thenReturn(List.of(mockData));
 
     // when & then
@@ -42,7 +43,7 @@ class SensorDataControllerTest {
         .andExpect(jsonPath("$[0].stationId").value("testStation"))
         .andExpect(jsonPath("$[0].csq").value("31"));
 
-    verify(sensorDataService)
+    verify(aggregationService)
         .getSensorDataByTimeRange(
             LocalDateTime.of(2025, 3, 11, 15, 0), LocalDateTime.of(2025, 3, 11, 23, 0));
   }
@@ -50,7 +51,7 @@ class SensorDataControllerTest {
   @Test
   void testSearchSensorData_Failure() throws Exception {
     // given
-    Mockito.when(sensorDataService.getSensorDataByTimeRange(any(), any()))
+    Mockito.when(aggregationService.getSensorDataByTimeRange(any(), any()))
         .thenThrow(new RuntimeException("DB error"));
 
     // when & then

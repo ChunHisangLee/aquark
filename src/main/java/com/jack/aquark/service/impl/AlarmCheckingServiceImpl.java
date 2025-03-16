@@ -3,9 +3,9 @@ package com.jack.aquark.service.impl;
 import com.jack.aquark.dto.AlarmCheckResult;
 import com.jack.aquark.dto.AlarmDetail;
 import com.jack.aquark.entity.SensorData;
+import com.jack.aquark.service.AggregationService;
 import com.jack.aquark.service.AlarmCheckingService;
 import com.jack.aquark.service.AlarmThresholdService;
-import com.jack.aquark.service.SensorDataService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class AlarmCheckingServiceImpl implements AlarmCheckingService {
 
-  private final SensorDataService sensorDataService;
+  private final AggregationService aggregationService;
   private final AlarmThresholdService alarmThresholdService;
 
   @Override
@@ -27,7 +27,7 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
     log.info("Checking sensor alarms for the last {} minutes...", intervalMinutes);
     LocalDateTime now = LocalDateTime.now();
     LocalDateTime startTime = now.minusMinutes(intervalMinutes);
-    List<SensorData> sensorDataList = sensorDataService.getSensorDataByTimeRange(startTime, now);
+    List<SensorData> sensorDataList = aggregationService.getSensorDataByTimeRange(startTime, now);
 
     // A list to hold all triggered alarm details.
     List<AlarmDetail> alarmDetails = new ArrayList<>();

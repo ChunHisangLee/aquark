@@ -10,9 +10,7 @@ public interface SensorDataService {
   void fetchAndSaveSensorData(String apiUrl);
 
   RawDataWrapperDto fetchRawDataFromUrl(String url);
-
-  List<SensorData> getSensorDataByTimeRange(LocalDateTime start, LocalDateTime end);
-
+  
   List<HourlyAggregation> getHourlyAverage(LocalDateTime start, LocalDateTime end);
 
   List<SensorData> getPeakTimeData(LocalDateTime start, LocalDateTime end);
