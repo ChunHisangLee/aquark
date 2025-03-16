@@ -24,6 +24,10 @@ spring:
       port: ${SPRING_REDIS_PORT:6379}
       password: ${SPRING_REDIS_PASSWORD:}
 
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+
+
 logging:
   level:
     com.example.assignment: INFO
@@ -37,7 +41,7 @@ springdoc:
 
 
 scheduling:
-  cron: "0 5/1 * * * ?"
+  cron: "0 0 0/1 * * ?"
 
 
 api:

@@ -2,10 +2,9 @@ package com.jack.aquark.service.impl;
 
 import com.jack.aquark.dto.AlarmCheckResult;
 import com.jack.aquark.dto.AlarmDetail;
+import com.jack.aquark.dto.AlarmEvent;
 import com.jack.aquark.entity.SensorData;
-import com.jack.aquark.service.AggregationService;
-import com.jack.aquark.service.AlarmCheckingService;
-import com.jack.aquark.service.AlarmThresholdService;
+import com.jack.aquark.service.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -21,6 +20,7 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
 
   private final AggregationService aggregationService;
   private final AlarmThresholdService alarmThresholdService;
+  private final KafkaProducerService kafkaProducerService;
 
   @Override
   public AlarmCheckResult checkSensorAlarms(int intervalMinutes) {
@@ -29,10 +29,9 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
     LocalDateTime startTime = now.minusMinutes(intervalMinutes);
     List<SensorData> sensorDataList = aggregationService.getSensorDataByTimeRange(startTime, now);
 
-    // A list to hold all triggered alarm details.
     List<AlarmDetail> alarmDetails = new ArrayList<>();
 
-    // Check various sensor parameters.
+    // Check various sensor parameters and publish events if triggered.
     checkAndAlarm(sensorDataList, "v1", alarmDetails);
     checkAndAlarm(sensorDataList, "v2", alarmDetails);
     checkAndAlarm(sensorDataList, "v3", alarmDetails);
@@ -48,7 +47,6 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
 
     String message = "Alarm check completed. " + alarmDetails.size() + " alarms triggered.";
     log.info(message);
-
     return new AlarmCheckResult(alarmDetails.size(), alarmDetails, message);
   }
 
@@ -71,7 +69,8 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
                   value.toPlainString(),
                   threshold.getThresholdValue().toPlainString());
           log.warn("Alarm sent: {}", msg);
-          // Add alarm detail to the list.
+
+          // Create an alarm detail.
           AlarmDetail detail =
               new AlarmDetail(
                   data.getStationId(),
@@ -82,6 +81,18 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
                   threshold.getThresholdValue(),
                   msg);
           alarmDetails.add(detail);
+
+          // Create and send a Kafka alarm event.
+          AlarmEvent event =
+              new AlarmEvent(
+                  data.getStationId(),
+                  data.getCsq(),
+                  parameter,
+                  value,
+                  threshold.getThresholdValue(),
+                  data.getObsTime(),
+                  msg);
+          kafkaProducerService.sendAlarmEvent(event);
         }
       } catch (RuntimeException e) {
         log.debug(
