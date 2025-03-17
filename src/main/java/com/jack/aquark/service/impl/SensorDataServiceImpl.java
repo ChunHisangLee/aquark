@@ -140,7 +140,6 @@ public class SensorDataServiceImpl implements SensorDataService {
     RestTemplate restTemplate = new RestTemplate();
     ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
 
-    // Check if HTTP response is successful
     if (!response.getStatusCode().is2xxSuccessful()) {
       log.error(
           "Failed to fetch data from URL: {}. HTTP Status: {}", url, response.getStatusCode());
@@ -184,10 +183,8 @@ public class SensorDataServiceImpl implements SensorDataService {
   private boolean isPeakTime(LocalDateTime dateTime) {
     DayOfWeek day = dateTime.getDayOfWeek();
     LocalTime time = dateTime.toLocalTime();
-
     LocalTime startPeak = LocalTime.of(7, 30);
     LocalTime endPeak = LocalTime.of(17, 30);
-
     return switch (day) {
       case MONDAY, TUESDAY, WEDNESDAY -> !time.isBefore(startPeak) && time.isBefore(endPeak);
       case THURSDAY, FRIDAY -> true;

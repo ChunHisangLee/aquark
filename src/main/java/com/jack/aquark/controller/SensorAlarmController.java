@@ -16,11 +16,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(
+    name = "Alarm API",
+    description = "APIs for checking sensor alarms and triggering notifications.")
 @RestController
 @RequestMapping("/api/alarm")
 @AllArgsConstructor
 @Slf4j
-@Tag(name = "Alarm API", description = "REST APIs for checking sensor alarms")
 public class SensorAlarmController {
 
   private final AlarmCheckingService alarmCheckingService;
@@ -28,7 +30,7 @@ public class SensorAlarmController {
   @Operation(
       summary = "Check Sensor Alarms",
       description =
-          "Checks sensor data within the given interval (in minutes) and triggers alarms if readings exceed thresholds.")
+          "Checks sensor data over the specified interval (in minutes) and triggers alarms if sensor readings exceed thresholds. Returns detailed alarm check results.")
   @ApiResponses({
     @ApiResponse(
         responseCode = MessagesConstants.STATUS_200,
@@ -41,13 +43,12 @@ public class SensorAlarmController {
   })
   @GetMapping("/check")
   public ResponseEntity<?> checkSensorAlarms(
-      @RequestParam(name = "intervalMinutes", defaultValue = "60")
-          int intervalMinutes) {
+      @RequestParam(name = "intervalMinutes", defaultValue = "60") int intervalMinutes) {
     try {
       AlarmCheckResult result = alarmCheckingService.checkSensorAlarms(intervalMinutes);
       return ResponseEntity.status(HttpStatus.OK).body(result);
     } catch (Exception e) {
-      log.error("Error fetching alarms statistics for range", e);
+      log.error("Error fetching alarms statistics", e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .body(new ResponseDto(MessagesConstants.STATUS_500, "Error fetching alarms statistics"));
     }

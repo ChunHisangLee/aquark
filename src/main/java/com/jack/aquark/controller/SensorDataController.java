@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(
     name = "Sensor Data API",
-    description = "REST APIs for fetching, uploading, and querying sensor data")
+    description = "APIs for fetching, uploading, and querying sensor data records and statistics.")
 @RestController
 @RequestMapping("/api/sensor")
 @AllArgsConstructor
@@ -36,7 +36,8 @@ public class SensorDataController {
 
   @Operation(
       summary = "Search Sensor Data by Hour",
-      description = "Search sensor data records for a given hour range (minutes are ignored).")
+      description =
+          "Retrieve sensor data records within the specified hour range. Date-time format: yyyy-MM-dd HH:mm:ss.")
   @ApiResponses({
     @ApiResponse(
         responseCode = MessagesConstants.STATUS_200,
@@ -50,16 +51,16 @@ public class SensorDataController {
   @GetMapping("/search")
   public ResponseEntity<?> searchSensorData(
       @Parameter(
-              example = "2025-03-11 15",
-              description = "Start date and hour in the format yyyy-MM-dd HH")
+              example = "2025-03-11 15:00:00",
+              description = "Start date and time in the format yyyy-MM-dd HH:mm:ss")
           @RequestParam
-          @DateTimeFormat(pattern = "yyyy-MM-dd HH")
+          @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime start,
       @Parameter(
-              example = "2025-03-11 23",
-              description = "End date and hour in the format yyyy-MM-dd HH")
+              example = "2025-03-11 23:00:00",
+              description = "End date and time in the format yyyy-MM-dd HH:mm:ss")
           @RequestParam
-          @DateTimeFormat(pattern = "yyyy-MM-dd HH")
+          @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime end) {
     try {
       List<SensorData> data = aggregationService.getSensorDataByTimeRange(start, end);
@@ -73,11 +74,12 @@ public class SensorDataController {
 
   @Operation(
       summary = "Get Hourly Statistics",
-      description = "Retrieves hourly average sensor data for a specified hour range.")
+      description =
+          "Retrieve aggregated hourly sensor data statistics for the specified date range. Date-time format: yyyy-MM-dd HH:mm:ss.")
   @ApiResponses({
     @ApiResponse(
         responseCode = MessagesConstants.STATUS_200,
-        description = "Hourly averages retrieved successfully",
+        description = "Hourly statistics retrieved successfully",
         content = @Content(schema = @Schema(implementation = Object[].class))),
     @ApiResponse(
         responseCode = MessagesConstants.STATUS_500,
@@ -87,16 +89,16 @@ public class SensorDataController {
   @GetMapping("/statistics/hourly")
   public ResponseEntity<?> getHourlyStats(
       @Parameter(
-              example = "2025-03-11 15",
-              description = "Start date and hour in the format yyyy-MM-dd HH")
+              example = "2025-03-11 15:00:00",
+              description = "Start date and time in the format yyyy-MM-dd HH:mm:ss")
           @RequestParam
-          @DateTimeFormat(pattern = "yyyy-MM-dd HH")
+          @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime start,
       @Parameter(
-              example = "2025-03-11 23",
-              description = "End date and hour in the format yyyy-MM-dd HH")
+              example = "2025-03-11 23:00:00",
+              description = "End date and time in the format yyyy-MM-dd HH:mm:ss")
           @RequestParam
-          @DateTimeFormat(pattern = "yyyy-MM-dd HH")
+          @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime end) {
     try {
       List<HourlyAggregation> stats = sensorDataService.getHourlyAverage(start, end);
@@ -108,20 +110,23 @@ public class SensorDataController {
     }
   }
 
-  @Operation(summary = "Get peak-time data by hour in range")
+  @Operation(
+      summary = "Get Peak-Time Data",
+      description =
+          "Retrieve sensor data for the specified period that falls within peak hours (defined as 07:30 to 17:30 on weekdays, all day on Thursdays and Fridays, and off on weekends). Date-time format: yyyy-MM-dd HH:mm:ss.")
   @GetMapping("/peak")
   public ResponseEntity<?> getPeakData(
       @Parameter(
-              example = "2025-03-11 15",
-              description = "Start date and hour in the format yyyy-MM-dd HH")
+              example = "2025-03-11 15:00:00",
+              description = "Start date and time in the format yyyy-MM-dd HH:mm:ss")
           @RequestParam
-          @DateTimeFormat(pattern = "yyyy-MM-dd HH")
+          @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime start,
       @Parameter(
-              example = "2025-03-11 23",
-              description = "End date and hour in the format yyyy-MM-dd HH")
+              example = "2025-03-11 23:00:00",
+              description = "End date and time in the format yyyy-MM-dd HH:mm:ss")
           @RequestParam
-          @DateTimeFormat(pattern = "yyyy-MM-dd HH")
+          @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime end) {
     try {
       List<SensorData> result = sensorDataService.getPeakTimeData(start, end);
@@ -133,20 +138,23 @@ public class SensorDataController {
     }
   }
 
-  @Operation(summary = "Get off-peak data by hour in range")
+  @Operation(
+      summary = "Get Off-Peak Data",
+      description =
+          "Retrieve sensor data for the specified period that falls outside peak hours. Date-time format: yyyy-MM-dd HH:mm:ss.")
   @GetMapping("/off-peak")
   public ResponseEntity<?> getOffPeakData(
       @Parameter(
-              example = "2025-03-11 15",
-              description = "Start date and hour in the format yyyy-MM-dd HH")
+              example = "2025-03-11 15:00:00",
+              description = "Start date and time in the format yyyy-MM-dd HH:mm:ss")
           @RequestParam
-          @DateTimeFormat(pattern = "yyyy-MM-dd HH")
+          @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime start,
       @Parameter(
-              example = "2025-03-11 23",
-              description = "End date and hour in the format yyyy-MM-dd HH")
+              example = "2025-03-11 23:00:00",
+              description = "End date and time in the format yyyy-MM-dd HH:mm:ss")
           @RequestParam
-          @DateTimeFormat(pattern = "yyyy-MM-dd HH")
+          @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime end) {
     try {
       List<SensorData> result = sensorDataService.getOffPeakTimeData(start, end);

@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(
     name = "Alarm Threshold API",
-    description = "REST APIs for retrieving and updating sensor alarm thresholds")
+    description = "APIs for retrieving and updating sensor alarm threshold configurations.")
 @RestController
 @RequestMapping("/api/alarm")
 @RequiredArgsConstructor
@@ -32,8 +32,9 @@ public class AlarmThresholdController {
   private final AlarmThresholdService alarmThresholdService;
 
   @Operation(
-      summary = "Get Alarm Threshold",
-      description = "Retrieves the alarm threshold for a given station, csq, and sensor parameter.")
+      summary = "Retrieve Alarm Threshold",
+      description =
+          "Retrieve the alarm threshold configuration for a given station, CSQ, and sensor parameter.")
   @ApiResponses({
     @ApiResponse(
         responseCode = MessagesConstants.STATUS_200,
@@ -41,14 +42,14 @@ public class AlarmThresholdController {
         content = @Content(schema = @Schema(implementation = AlarmThreshold.class))),
     @ApiResponse(
         responseCode = MessagesConstants.STATUS_404,
-        description = "Threshold not found for the given combination",
+        description = "Threshold not found for the given parameters",
         content = @Content(schema = @Schema(implementation = String.class)))
   })
   @GetMapping
   public ResponseEntity<AlarmThreshold> getThreshold(
-      @Parameter(example = "240627", description = "The station ID") @RequestParam String stationId,
-      @Parameter(example = "31", description = "The CSQ value") @RequestParam String csq,
-      @Parameter(example = "v1", description = "The sensor parameter (e.g., 'v1', 'rh', etc.)")
+      @Parameter(example = "240627", description = "Station ID") @RequestParam String stationId,
+      @Parameter(example = "31", description = "CSQ value") @RequestParam String csq,
+      @Parameter(example = "v1", description = "Sensor parameter (e.g. 'v1', 'rh', etc.)")
           @RequestParam
           String parameter) {
     AlarmThreshold threshold = alarmThresholdService.getThreshold(stationId, csq, parameter);
@@ -61,7 +62,7 @@ public class AlarmThresholdController {
   @Operation(
       summary = "Update Alarm Threshold",
       description =
-          "Creates or updates the alarm threshold for a given station, csq, and sensor parameter.")
+          "Creates or updates the alarm threshold configuration for a specified station, CSQ, and sensor parameter.")
   @ApiResponses({
     @ApiResponse(
         responseCode = MessagesConstants.STATUS_200,
@@ -69,14 +70,12 @@ public class AlarmThresholdController {
         content = @Content(schema = @Schema(implementation = AlarmThreshold.class))),
     @ApiResponse(
         responseCode = MessagesConstants.STATUS_417,
-        description = "Internal Server Error",
+        description = "Update operation failed",
         content = @Content(schema = @Schema(implementation = String.class)))
   })
   @PostMapping("/update")
   public ResponseEntity<ResponseDto> updateThreshold(@Valid @RequestBody AlarmThreshold threshold) {
-
     boolean isUpdated = alarmThresholdService.updateThreshold(threshold);
-
     if (isUpdated) {
       log.info("Alarm threshold updated successfully.");
       return ResponseEntity.status(HttpStatus.OK)
