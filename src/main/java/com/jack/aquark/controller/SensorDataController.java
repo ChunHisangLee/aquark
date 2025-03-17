@@ -1,6 +1,7 @@
 package com.jack.aquark.controller;
 
 import com.jack.aquark.constant.MessagesConstants;
+import com.jack.aquark.entity.DailyAggregation;
 import com.jack.aquark.entity.HourlyAggregation;
 import com.jack.aquark.entity.SensorData;
 import com.jack.aquark.response.ResponseDto;
@@ -107,6 +108,44 @@ public class SensorDataController {
       log.error("Error fetching hourly statistics for range {} - {}", start, end, e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .body(new ResponseDto(MessagesConstants.STATUS_500, "Error fetching hourly statistics"));
+    }
+  }
+
+  @Operation(
+      summary = "Get Daily Statistics",
+      description =
+          "Retrieve aggregated daily sensor data statistics for the specified date range.")
+  @ApiResponses({
+    @ApiResponse(
+        responseCode = MessagesConstants.STATUS_200,
+        description = "Daily statistics retrieved successfully",
+        content = @Content(schema = @Schema(implementation = DailyAggregation.class))),
+    @ApiResponse(
+        responseCode = MessagesConstants.STATUS_500,
+        description = "Internal Server Error",
+        content = @Content(schema = @Schema(implementation = String.class)))
+  })
+  @GetMapping("/statistics/daily")
+  public ResponseEntity<?> getDailyStats(
+      @Parameter(
+              example = "2025-03-11 00:00:00",
+              description = "Start date/time in the format yyyy-MM-dd HH:mm:ss")
+          @RequestParam
+          @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+          LocalDateTime start,
+      @Parameter(
+              example = "2025-03-14 00:00:00",
+              description = "End date/time in the format yyyy-MM-dd HH:mm:ss")
+          @RequestParam
+          @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+          LocalDateTime end) {
+    try {
+      List<DailyAggregation> stats = sensorDataService.getDailyAverage(start, end);
+      return ResponseEntity.ok(stats);
+    } catch (Exception e) {
+      log.error("Error fetching daily statistics for range {} - {}", start, end, e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(new ResponseDto(MessagesConstants.STATUS_500, "Error fetching daily statistics"));
     }
   }
 

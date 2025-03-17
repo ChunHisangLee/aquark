@@ -4,6 +4,7 @@ import com.jack.aquark.entity.AlarmThreshold;
 import com.jack.aquark.exception.ThresholdNotFoundException;
 import com.jack.aquark.repository.AlarmThresholdRepository;
 import com.jack.aquark.service.AlarmThresholdService;
+import java.util.List;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -74,5 +75,10 @@ public class AlarmThresholdServiceImpl implements AlarmThresholdService {
   @Override
   public AlarmThreshold saveNewThreshold(AlarmThreshold threshold) {
     return alarmThresholdRepository.save(threshold);
+  }
+
+  @Override
+  public List<AlarmThreshold> getAllThresholds() {
+    return alarmThresholdRepository.findAll();
   }
 }

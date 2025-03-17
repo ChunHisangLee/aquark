@@ -4,9 +4,14 @@ import com.jack.aquark.dto.AlarmCheckResult;
 import com.jack.aquark.dto.AlarmDetail;
 import com.jack.aquark.dto.AlarmEvent;
 import com.jack.aquark.entity.SensorData;
-import com.jack.aquark.service.*;
+import com.jack.aquark.service.AggregationService;
+import com.jack.aquark.service.AlarmCheckingService;
+import com.jack.aquark.service.AlarmThresholdService;
+import com.jack.aquark.service.KafkaProducerService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -18,6 +23,8 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class AlarmCheckingServiceImpl implements AlarmCheckingService {
 
+  private static final ZoneId TAIPEI_ZONE = ZoneId.of("Asia/Taipei");
+
   private final AggregationService aggregationService;
   private final AlarmThresholdService alarmThresholdService;
   private final KafkaProducerService kafkaProducerService;
@@ -25,10 +32,18 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
   @Override
   public AlarmCheckResult checkSensorAlarms(int intervalMinutes) {
     log.info("Checking sensor alarms for the last {} minutes...", intervalMinutes);
-    LocalDateTime now = LocalDateTime.now();
-    LocalDateTime startTime = now.minusMinutes(intervalMinutes);
-    List<SensorData> sensorDataList = aggregationService.getSensorDataByTimeRange(startTime, now);
 
+    // Get current time in Taipei time zone
+    ZonedDateTime nowZoned = ZonedDateTime.now(TAIPEI_ZONE);
+    ZonedDateTime startZoned = nowZoned.minusMinutes(intervalMinutes);
+
+    // Convert to LocalDateTime for repository compatibility if needed
+    LocalDateTime now = nowZoned.toLocalDateTime();
+    LocalDateTime startTime = startZoned.toLocalDateTime();
+
+    log.info("StartTime: {}, EndTime: {}", startTime, now);
+
+    List<SensorData> sensorDataList = aggregationService.getSensorDataByTimeRange(startTime, now);
     List<AlarmDetail> alarmDetails = new ArrayList<>();
 
     // Check various sensor parameters and publish events if triggered.

@@ -47,11 +47,12 @@ class AlarmThresholdControllerTest {
                 .param("csq", "31")
                 .param("parameter", "v1"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.stationId").value("240627"))
-        .andExpect(jsonPath("$.csq").value("31"))
-        .andExpect(jsonPath("$.parameter").value("v1"))
+        // Since the controller wraps a single object in a list, access the first element with $[0]
+        .andExpect(jsonPath("$[0].stationId").value("240627"))
+        .andExpect(jsonPath("$[0].csq").value("31"))
+        .andExpect(jsonPath("$[0].parameter").value("v1"))
         // Expect numeric value 100.0 (JSON numbers are not formatted as strings)
-        .andExpect(jsonPath("$.thresholdValue").value(100.0));
+        .andExpect(jsonPath("$[0].thresholdValue").value(100.0));
   }
 
   @Test
