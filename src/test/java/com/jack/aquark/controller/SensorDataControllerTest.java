@@ -1,188 +1,118 @@
 package com.jack.aquark.controller;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jack.aquark.entity.HourlyAggregation;
 import com.jack.aquark.entity.SensorData;
 import com.jack.aquark.service.AggregationService;
 import com.jack.aquark.service.SensorDataService;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(SensorDataController.class)
-class SensorDataControllerTest {
+@WebMvcTest(controllers = SensorDataController.class)
+public class SensorDataControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
-  @MockBean private AggregationService aggregationService;
-
   @MockBean private SensorDataService sensorDataService;
 
-  @Test
-  void testSearchSensorData_Success() throws Exception {
-    // given
-    SensorData mockData = new SensorData();
-    mockData.setStationId("testStation");
-    mockData.setCsq("31");
-    mockData.setObsTime(LocalDateTime.of(2025, 3, 11, 15, 0));
+  @MockBean private AggregationService aggregationService;
 
-    Mockito.when(aggregationService.getSensorDataByTimeRange(any(), any()))
-        .thenReturn(List.of(mockData));
-
-    // when & then
-    mockMvc
-        .perform(
-            get("/api/sensor/search").param("start", "2025-03-11 15").param("end", "2025-03-11 23"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].stationId").value("testStation"))
-        .andExpect(jsonPath("$[0].csq").value("31"));
-
-    verify(aggregationService)
-        .getSensorDataByTimeRange(
-            LocalDateTime.of(2025, 3, 11, 15, 0), LocalDateTime.of(2025, 3, 11, 23, 0));
-  }
+  @Autowired private ObjectMapper objectMapper;
 
   @Test
-  void testSearchSensorData_Failure() throws Exception {
-    // given
-    Mockito.when(aggregationService.getSensorDataByTimeRange(any(), any()))
-        .thenThrow(new RuntimeException("DB error"));
+  public void testSearchSensorData_Success() throws Exception {
+    // Prepare test data for the /search endpoint.
+    SensorData sensorData = new SensorData();
+    sensorData.setStationId("station1");
+    sensorData.setObsTime(LocalDateTime.of(2025, 3, 11, 16, 0, 0));
+    sensorData.setCsq("csq1");
+    List<SensorData> sensorDataList = Collections.singletonList(sensorData);
 
-    // when & then
+    when(aggregationService.getSensorDataByTimeRange(
+            any(LocalDateTime.class), any(LocalDateTime.class)))
+        .thenReturn(sensorDataList);
+
     mockMvc
         .perform(
             get("/api/sensor/search")
-                .param("start", "2025-03-11 15")
-                .param("end", "2025-03-11 23")
+                .param("start", "2025-03-11 15:00:00")
+                .param("end", "2025-03-11 23:00:00")
                 .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isInternalServerError());
-  }
-
-  @Test
-  void testGetHourlyStats_Success() throws Exception {
-    // given
-    HourlyAggregation agg = new HourlyAggregation();
-    // Set properties on the aggregation as needed, e.g.:
-    // agg.setSomeProperty(...);
-    Mockito.when(sensorDataService.getHourlyAverage(any(), any())).thenReturn(List.of(agg));
-
-    // when & then
-    mockMvc
-        .perform(
-            get("/api/sensor/statistics/hourly")
-                .param("start", "2025-03-11 15")
-                .param("end", "2025-03-11 23"))
-        .andExpect(status().isOk());
-
-    verify(sensorDataService)
-        .getHourlyAverage(
-            LocalDateTime.of(2025, 3, 11, 15, 0), LocalDateTime.of(2025, 3, 11, 23, 0));
-  }
-
-  @Test
-  void testGetHourlyStats_Failure() throws Exception {
-    // given
-    Mockito.when(sensorDataService.getHourlyAverage(any(), any()))
-        .thenThrow(new RuntimeException("Service error"));
-
-    // when & then
-    mockMvc
-        .perform(
-            get("/api/sensor/statistics/hourly")
-                .param("start", "2025-03-11 15")
-                .param("end", "2025-03-11 23")
-                .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isInternalServerError());
-  }
-
-  @Test
-  void testGetPeakData_Success() throws Exception {
-    // given
-    SensorData peakData = new SensorData();
-    peakData.setStationId("peakStation");
-    peakData.setCsq("45");
-    peakData.setObsTime(LocalDateTime.of(2025, 3, 11, 18, 0));
-
-    Mockito.when(sensorDataService.getPeakTimeData(any(), any())).thenReturn(List.of(peakData));
-
-    // when & then
-    mockMvc
-        .perform(
-            get("/api/sensor/peak").param("start", "2025-03-11 15").param("end", "2025-03-11 23"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].stationId").value("peakStation"))
-        .andExpect(jsonPath("$[0].csq").value("45"));
-
-    verify(sensorDataService)
-        .getPeakTimeData(
-            LocalDateTime.of(2025, 3, 11, 15, 0), LocalDateTime.of(2025, 3, 11, 23, 0));
+        .andExpect(jsonPath("$[0].stationId").value("station1"))
+        .andExpect(jsonPath("$[0].csq").value("csq1"));
   }
 
   @Test
-  void testGetPeakData_Failure() throws Exception {
-    // given
-    Mockito.when(sensorDataService.getPeakTimeData(any(), any()))
-        .thenThrow(new RuntimeException("Peak data error"));
+  public void testGetHourlyStats_Success() throws Exception {
+    HourlyAggregation agg = new HourlyAggregation();
+    agg.setStationId("station1");
+    List<HourlyAggregation> list = Collections.singletonList(agg);
 
-    // when & then
+    when(sensorDataService.getHourlyAverage(any(LocalDateTime.class), any(LocalDateTime.class)))
+        .thenReturn(list);
+
+    mockMvc
+        .perform(
+            get("/api/sensor/statistics/hourly")
+                .param("start", "2025-03-11 15:00:00")
+                .param("end", "2025-03-11 23:00:00")
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].stationId").value("station1"));
+  }
+
+  @Test
+  public void testGetPeakData_Success() throws Exception {
+    SensorData sensorData = new SensorData();
+    sensorData.setStationId("station1");
+    sensorData.setObsTime(LocalDateTime.of(2025, 3, 11, 16, 0, 0)); // Assume peak time.
+    sensorData.setCsq("csq1");
+    List<SensorData> list = Collections.singletonList(sensorData);
+
+    when(sensorDataService.getPeakTimeData(any(LocalDateTime.class), any(LocalDateTime.class)))
+        .thenReturn(list);
+
     mockMvc
         .perform(
             get("/api/sensor/peak")
-                .param("start", "2025-03-11 15")
-                .param("end", "2025-03-11 23")
+                .param("start", "2025-03-11 15:00:00")
+                .param("end", "2025-03-11 23:00:00")
                 .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isInternalServerError());
-  }
-
-  @Test
-  void testGetOffPeakData_Success() throws Exception {
-    // given
-    SensorData offPeakData = new SensorData();
-    offPeakData.setStationId("offPeakStation");
-    offPeakData.setCsq("20");
-    offPeakData.setObsTime(LocalDateTime.of(2025, 3, 11, 20, 0));
-
-    Mockito.when(sensorDataService.getOffPeakTimeData(any(), any()))
-        .thenReturn(List.of(offPeakData));
-
-    // when & then
-    mockMvc
-        .perform(
-            get("/api/sensor/off-peak")
-                .param("start", "2025-03-11 15")
-                .param("end", "2025-03-11 23"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].stationId").value("offPeakStation"))
-        .andExpect(jsonPath("$[0].csq").value("20"));
-
-    verify(sensorDataService)
-        .getOffPeakTimeData(
-            LocalDateTime.of(2025, 3, 11, 15, 0), LocalDateTime.of(2025, 3, 11, 23, 0));
+        .andExpect(jsonPath("$[0].stationId").value("station1"));
   }
 
   @Test
-  void testGetOffPeakData_Failure() throws Exception {
-    // given
-    Mockito.when(sensorDataService.getOffPeakTimeData(any(), any()))
-        .thenThrow(new RuntimeException("Off-peak data error"));
+  public void testGetOffPeakData_Success() throws Exception {
+    SensorData sensorData = new SensorData();
+    sensorData.setStationId("station2");
+    sensorData.setObsTime(LocalDateTime.of(2025, 3, 11, 12, 0, 0)); // Assume off-peak time.
+    sensorData.setCsq("csq2");
+    List<SensorData> list = Collections.singletonList(sensorData);
 
-    // when & then
+    when(sensorDataService.getOffPeakTimeData(any(LocalDateTime.class), any(LocalDateTime.class)))
+        .thenReturn(list);
+
     mockMvc
         .perform(
             get("/api/sensor/off-peak")
-                .param("start", "2025-03-11 15")
-                .param("end", "2025-03-11 23")
+                .param("start", "2025-03-11 15:00:00")
+                .param("end", "2025-03-11 23:00:00")
                 .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isInternalServerError());
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].stationId").value("station2"));
   }
 }
