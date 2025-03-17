@@ -14,6 +14,7 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
@@ -32,28 +33,41 @@ public class RedisConfig {
   @Bean
   public RedisConnectionFactory redisConnectionFactory() {
     log.info(
-        "Initializing RedisConnectionFactory with host: {} and port: {} and password: {}",
+        "Initializing RedisConnectionFactory with host: {} port: {} password: {}",
         redisHost,
         redisPort,
         redisPassword);
-    RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration();
-    redisConfig.setHostName(redisHost);
-    redisConfig.setPort(redisPort);
+
+    RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
+    config.setHostName(redisHost);
+    config.setPort(redisPort);
 
     if (!redisPassword.isEmpty()) {
-      redisConfig.setPassword(redisPassword);
+      config.setPassword(redisPassword);
     }
 
-    return new LettuceConnectionFactory(redisConfig);
+    return new LettuceConnectionFactory(config);
   }
 
+  /** Configures CacheManager to use a Jackson-based JSON serializer for caching. */
   @Bean
-  public CacheManager cacheManager(LettuceConnectionFactory redisConnectionFactory) {
+  public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+    // Create an ObjectMapper with any custom modules/config as needed
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.findAndRegisterModules();
+
+    // Use the constructor (mapper, type) to avoid the deprecated setObjectMapper(...)
+    Jackson2JsonRedisSerializer<Object> jsonSerializer =
+        new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
+
     RedisCacheConfiguration config =
         RedisCacheConfiguration.defaultCacheConfig()
-            .entryTtl(Duration.ofMinutes(60))
-            .disableCachingNullValues();
-    return RedisCacheManager.builder(redisConnectionFactory).cacheDefaults(config).build();
+            .entryTtl(Duration.ofMinutes(60)) // 60-minute TTL
+            .disableCachingNullValues()
+            .serializeValuesWith(
+                RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer));
+
+    return RedisCacheManager.builder(connectionFactory).cacheDefaults(config).build();
   }
 
   @Bean
@@ -61,13 +75,19 @@ public class RedisConfig {
     RedisTemplate<String, Object> template = new RedisTemplate<>();
     template.setConnectionFactory(connectionFactory);
 
-    template.setKeySerializer(new StringRedisSerializer());
+    // Use String for keys
+    StringRedisSerializer keySerializer = new StringRedisSerializer();
+    template.setKeySerializer(keySerializer);
+    template.setHashKeySerializer(keySerializer);
 
-    ObjectMapper mapper = new ObjectMapper();
-    mapper.findAndRegisterModules();
-    Jackson2JsonRedisSerializer<Object> serializer =
-        new Jackson2JsonRedisSerializer<>(Object.class);
-    template.setValueSerializer(serializer);
+    // Use Jackson for values
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.findAndRegisterModules();
+    Jackson2JsonRedisSerializer<Object> jsonSerializer =
+        new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
+
+    template.setValueSerializer(jsonSerializer);
+    template.setHashValueSerializer(jsonSerializer);
 
     template.afterPropertiesSet();
     return template;

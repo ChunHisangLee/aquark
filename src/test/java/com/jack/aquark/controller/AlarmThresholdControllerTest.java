@@ -103,10 +103,10 @@ class AlarmThresholdControllerTest {
             post("/api/alarm/update")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(threshold)))
-        .andExpect(status().isExpectationFailed())
-        .andExpect(jsonPath("$.statusCode").value(MessagesConstants.STATUS_417))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.statusCode").value(MessagesConstants.STATUS_409))
         .andExpect(
             jsonPath("$.statusMsg")
-                .value("Update operation failed. Please try again or contact Dev team."));
+                .value("Could not update threshold. Possibly a conflict or missing data."));
   }
 }

@@ -34,7 +34,9 @@ public class AlarmThresholdServiceImpl implements AlarmThresholdService {
   }
 
   @Override
-  @CacheEvict(value = "thresholds", key = "#threshold.stationId + '_' + #threshold.csq + '_' + #threshold.parameter")
+  @CacheEvict(
+      value = "thresholds",
+      key = "#threshold.stationId + '_' + #threshold.csq + '_' + #threshold.parameter")
   public boolean updateThreshold(AlarmThreshold threshold) {
     Optional<AlarmThreshold> existingOpt =
         alarmThresholdRepository.findByStationIdAndCsqAndParameter(
@@ -60,5 +62,17 @@ public class AlarmThresholdServiceImpl implements AlarmThresholdService {
         saved.getCsq(),
         saved.getThresholdValue().toPlainString());
     return true;
+  }
+
+  @Override
+  public boolean exists(String stationId, String csq, String parameter) {
+    return alarmThresholdRepository
+        .findByStationIdAndCsqAndParameter(stationId, csq, parameter)
+        .isPresent();
+  }
+
+  @Override
+  public AlarmThreshold saveNewThreshold(AlarmThreshold threshold) {
+    return alarmThresholdRepository.save(threshold);
   }
 }

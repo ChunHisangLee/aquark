@@ -8,14 +8,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.responses.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -69,23 +67,51 @@ public class AlarmThresholdController {
         description = "Threshold updated successfully",
         content = @Content(schema = @Schema(implementation = AlarmThreshold.class))),
     @ApiResponse(
-        responseCode = MessagesConstants.STATUS_417,
+        responseCode = MessagesConstants.STATUS_409,
         description = "Update operation failed",
         content = @Content(schema = @Schema(implementation = String.class)))
   })
   @PostMapping("/update")
   public ResponseEntity<ResponseDto> updateThreshold(@Valid @RequestBody AlarmThreshold threshold) {
     boolean isUpdated = alarmThresholdService.updateThreshold(threshold);
+
     if (isUpdated) {
-      log.info("Alarm threshold updated successfully.");
-      return ResponseEntity.status(HttpStatus.OK)
-          .body(new ResponseDto(MessagesConstants.STATUS_200, "Request processed successfully."));
+      return ResponseEntity.ok(
+          new ResponseDto(MessagesConstants.STATUS_200, "Request processed successfully."));
     } else {
-      return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED)
+      return ResponseEntity.status(HttpStatus.CONFLICT)
           .body(
               new ResponseDto(
-                  MessagesConstants.STATUS_417,
-                  "Update operation failed. Please try again or contact Dev team."));
+                  MessagesConstants.STATUS_409,
+                  "Could not update threshold. Possibly a conflict or missing data."));
     }
+  }
+
+  @Operation(
+      summary = "Add a New Alarm Threshold",
+      description =
+          "Adds a new alarm threshold configuration if it doesn't already exist. Returns 409 if duplicate.")
+  @ApiResponses({
+    @ApiResponse(
+        responseCode = MessagesConstants.STATUS_201,
+        description = "Threshold created successfully",
+        content = @Content(schema = @Schema(implementation = AlarmThreshold.class))),
+    @ApiResponse(
+        responseCode = MessagesConstants.STATUS_409,
+        description = "Threshold already exists for the given station, CSQ, and parameter",
+        content = @Content(schema = @Schema(implementation = String.class)))
+  })
+  @PostMapping("/add")
+  public ResponseEntity<?> addThreshold(@Valid @RequestBody AlarmThreshold threshold) {
+    boolean exists =
+        alarmThresholdService.exists(
+            threshold.getStationId(), threshold.getCsq(), threshold.getParameter());
+    if (exists) {
+      return ResponseEntity.status(HttpStatus.CONFLICT)
+          .body("Alarm threshold already exists for these parameters.");
+    }
+
+    AlarmThreshold created = alarmThresholdService.saveNewThreshold(threshold);
+    return ResponseEntity.status(HttpStatus.CREATED).body(created);
   }
 }
