@@ -134,7 +134,9 @@ src /main/ resources /db/ migration
   ```
 
 Example migration script file:
--  V1__Initial_setup.sql
+
+- V1__Initial_setup.sql
+
   ```sql
 CREATE TABLE alarm_threshold
 (
@@ -281,13 +283,13 @@ Or build the JAR and execute it:
 
 - **API Endpoints:**
 
-    The application listens on port 8080.
+  The application listens on port 8080.
 
 - **Swagger UI:**
 
-    Access the API documentation at:
+  Access the API documentation at:
 
-    http://localhost:8080/swagger-ui-custom.html
+  http://localhost:8080/swagger-ui-custom.html
 
 ---
 

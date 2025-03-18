@@ -1,7 +1,6 @@
 package com.jack.aquark.service;
 
 import com.jack.aquark.entity.AlarmThreshold;
-
 import java.util.List;
 
 public interface AlarmThresholdService {

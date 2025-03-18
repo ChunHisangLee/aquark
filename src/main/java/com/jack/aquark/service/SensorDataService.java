@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface SensorDataService {
   void fetchAndSaveSensorData(String apiUrl);
-  
+
   List<HourlyAggregation> getHourlyAverage(LocalDateTime start, LocalDateTime end);
 
   List<DailyAggregation> getDailyAverage(LocalDateTime start, LocalDateTime end);

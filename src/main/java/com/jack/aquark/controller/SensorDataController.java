@@ -154,14 +154,14 @@ public class SensorDataController {
       description =
           "Retrieve sensor data for the specified period that falls within peak hours (defined as 07:30 to 17:30 on weekdays, all day on Thursdays and Fridays, and off on weekends). Date-time format: yyyy-MM-dd HH:mm:ss.")
   @ApiResponses({
-          @ApiResponse(
-                  responseCode = MessagesConstants.STATUS_200,
-                  description = "Peak data statistics retrieved successfully",
-                  content = @Content(schema = @Schema(implementation = SensorData.class))),
-          @ApiResponse(
-                  responseCode = MessagesConstants.STATUS_500,
-                  description = "Internal Server Error",
-                  content = @Content(schema = @Schema(implementation = String.class)))
+    @ApiResponse(
+        responseCode = MessagesConstants.STATUS_200,
+        description = "Peak data statistics retrieved successfully",
+        content = @Content(schema = @Schema(implementation = SensorData.class))),
+    @ApiResponse(
+        responseCode = MessagesConstants.STATUS_500,
+        description = "Internal Server Error",
+        content = @Content(schema = @Schema(implementation = String.class)))
   })
   @GetMapping("/peak")
   public ResponseEntity<?> getPeakData(
@@ -192,14 +192,14 @@ public class SensorDataController {
       description =
           "Retrieve sensor data for the specified period that falls outside peak hours. Date-time format: yyyy-MM-dd HH:mm:ss.")
   @ApiResponses({
-          @ApiResponse(
-                  responseCode = MessagesConstants.STATUS_200,
-                  description = "Off-Peak data statistics retrieved successfully",
-                  content = @Content(schema = @Schema(implementation = SensorData.class))),
-          @ApiResponse(
-                  responseCode = MessagesConstants.STATUS_500,
-                  description = "Internal Server Error",
-                  content = @Content(schema = @Schema(implementation = String.class)))
+    @ApiResponse(
+        responseCode = MessagesConstants.STATUS_200,
+        description = "Off-Peak data statistics retrieved successfully",
+        content = @Content(schema = @Schema(implementation = SensorData.class))),
+    @ApiResponse(
+        responseCode = MessagesConstants.STATUS_500,
+        description = "Internal Server Error",
+        content = @Content(schema = @Schema(implementation = String.class)))
   })
   @GetMapping("/off-peak")
   public ResponseEntity<?> getOffPeakData(

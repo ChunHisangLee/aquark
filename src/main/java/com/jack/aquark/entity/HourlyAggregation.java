@@ -7,13 +7,10 @@ import lombok.*;
 
 @Entity
 @Table(
-        name = "hourly_aggregation",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        columnNames = {"station_id", "obs_date", "obs_hour", "csq"}
-                )
-        }
-)
+    name = "hourly_aggregation",
+    uniqueConstraints = {
+      @UniqueConstraint(columnNames = {"station_id", "obs_date", "obs_hour", "csq"})
+    })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,91 +18,91 @@ import lombok.*;
 @Builder
 public class HourlyAggregation {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(name = "station_id", nullable = false)
-    private String stationId;
+  @Column(name = "station_id", nullable = false)
+  private String stationId;
 
-    @Column(name = "obs_date", nullable = false)
-    private LocalDate obsDate;
+  @Column(name = "obs_date", nullable = false)
+  private LocalDate obsDate;
 
-    @Column(name = "obs_hour", nullable = false)
-    private int obsHour;
+  @Column(name = "obs_hour", nullable = false)
+  private int obsHour;
 
-    @Column(name = "csq", nullable = false)
-    private String csq;
+  @Column(name = "csq", nullable = false)
+  private String csq;
 
-    @Column(name = "v1_sum_value")
-    private BigDecimal v1SumValue;
+  @Column(name = "v1_sum_value")
+  private BigDecimal v1SumValue;
 
-    @Column(name = "v1_avg_value")
-    private BigDecimal v1AvgValue;
+  @Column(name = "v1_avg_value")
+  private BigDecimal v1AvgValue;
 
-    @Column(name = "v2_sum_value")
-    private BigDecimal v2SumValue;
+  @Column(name = "v2_sum_value")
+  private BigDecimal v2SumValue;
 
-    @Column(name = "v2_avg_value")
-    private BigDecimal v2AvgValue;
+  @Column(name = "v2_avg_value")
+  private BigDecimal v2AvgValue;
 
-    @Column(name = "v3_sum_value")
-    private BigDecimal v3SumValue;
+  @Column(name = "v3_sum_value")
+  private BigDecimal v3SumValue;
 
-    @Column(name = "v3_avg_value")
-    private BigDecimal v3AvgValue;
+  @Column(name = "v3_avg_value")
+  private BigDecimal v3AvgValue;
 
-    @Column(name = "v4_sum_value")
-    private BigDecimal v4SumValue;
+  @Column(name = "v4_sum_value")
+  private BigDecimal v4SumValue;
 
-    @Column(name = "v4_avg_value")
-    private BigDecimal v4AvgValue;
+  @Column(name = "v4_avg_value")
+  private BigDecimal v4AvgValue;
 
-    @Column(name = "v5_sum_value")
-    private BigDecimal v5SumValue;
+  @Column(name = "v5_sum_value")
+  private BigDecimal v5SumValue;
 
-    @Column(name = "v5_avg_value")
-    private BigDecimal v5AvgValue;
+  @Column(name = "v5_avg_value")
+  private BigDecimal v5AvgValue;
 
-    @Column(name = "v6_sum_value")
-    private BigDecimal v6SumValue;
+  @Column(name = "v6_sum_value")
+  private BigDecimal v6SumValue;
 
-    @Column(name = "v6_avg_value")
-    private BigDecimal v6AvgValue;
+  @Column(name = "v6_avg_value")
+  private BigDecimal v6AvgValue;
 
-    @Column(name = "v7_sum_value")
-    private BigDecimal v7SumValue;
+  @Column(name = "v7_sum_value")
+  private BigDecimal v7SumValue;
 
-    @Column(name = "v7_avg_value")
-    private BigDecimal v7AvgValue;
+  @Column(name = "v7_avg_value")
+  private BigDecimal v7AvgValue;
 
-    @Column(name = "rh_sum_value")
-    private BigDecimal rhSumValue;
+  @Column(name = "rh_sum_value")
+  private BigDecimal rhSumValue;
 
-    @Column(name = "rh_avg_value")
-    private BigDecimal rhAvgValue;
+  @Column(name = "rh_avg_value")
+  private BigDecimal rhAvgValue;
 
-    @Column(name = "tx_sum_value")
-    private BigDecimal txSumValue;
+  @Column(name = "tx_sum_value")
+  private BigDecimal txSumValue;
 
-    @Column(name = "tx_avg_value")
-    private BigDecimal txAvgValue;
+  @Column(name = "tx_avg_value")
+  private BigDecimal txAvgValue;
 
-    @Column(name = "echo_sum_value")
-    private BigDecimal echoSumValue;
+  @Column(name = "echo_sum_value")
+  private BigDecimal echoSumValue;
 
-    @Column(name = "echo_avg_value")
-    private BigDecimal echoAvgValue;
+  @Column(name = "echo_avg_value")
+  private BigDecimal echoAvgValue;
 
-    @Column(name = "rainD_sum_value")
-    private BigDecimal rainDSumValue;
+  @Column(name = "rainD_sum_value")
+  private BigDecimal rainDSumValue;
 
-    @Column(name = "rainD_avg_value")
-    private BigDecimal rainDAvgValue;
+  @Column(name = "rainD_avg_value")
+  private BigDecimal rainDAvgValue;
 
-    @Column(name = "speed_sum_value")
-    private BigDecimal speedSumValue;
+  @Column(name = "speed_sum_value")
+  private BigDecimal speedSumValue;
 
-    @Column(name = "speed_avg_value")
-    private BigDecimal speedAvgValue;
+  @Column(name = "speed_avg_value")
+  private BigDecimal speedAvgValue;
 }

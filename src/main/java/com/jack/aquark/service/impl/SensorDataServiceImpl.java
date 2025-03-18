@@ -34,15 +34,14 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 public class SensorDataServiceImpl implements SensorDataService {
 
+  private static final DateTimeFormatter FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
   private final SensorDataRepository sensorDataRepository;
   private final TempSensorDataRepository tempSensorDataRepository;
   private final HourlyAggregationRepository hourlyAggregationRepository;
   private final DailyAggregationRepository dailyAggregationRepository;
   private final AggregationService aggregationService;
   private final ObjectMapper objectMapper;
-
-  private static final DateTimeFormatter FORMATTER =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
   /**
    * 1) Fetch & save raw sensor data to both SensorData + TempSensorData. No aggregator logic

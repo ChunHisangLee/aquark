@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.NOT_FOUND)
 public class ThresholdNotFoundException extends RuntimeException {
-    public ThresholdNotFoundException(String message) {
-        super(message);
-    }
+  public ThresholdNotFoundException(String message) {
+    super(message);
+  }
 }

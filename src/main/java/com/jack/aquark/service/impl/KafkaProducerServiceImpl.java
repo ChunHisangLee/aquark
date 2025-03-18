@@ -11,9 +11,8 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 @Slf4j
 public class KafkaProducerServiceImpl implements KafkaProducerService {
-  private final KafkaTemplate<String, Object> kafkaTemplate;
-
   private static final String TOPIC = "alarm-events";
+  private final KafkaTemplate<String, Object> kafkaTemplate;
 
   @Override
   public void sendAlarmEvent(AlarmEvent event) {

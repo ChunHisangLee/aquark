@@ -7,13 +7,8 @@ import lombok.*;
 
 @Entity
 @Table(
-        name = "daily_aggregation",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        columnNames = {"station_id", "obs_date", "csq"}
-                )
-        }
-)
+    name = "daily_aggregation",
+    uniqueConstraints = {@UniqueConstraint(columnNames = {"station_id", "obs_date", "csq"})})
 @Getter
 @Setter
 @NoArgsConstructor

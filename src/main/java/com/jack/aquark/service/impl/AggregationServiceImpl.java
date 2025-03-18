@@ -28,11 +28,6 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class AggregationServiceImpl implements AggregationService {
 
-  private final HourlyAggregationRepository hourlyAggregationRepository;
-  private final DailyAggregationRepository dailyAggregationRepository;
-  private final TempSensorDataRepository tempSensorDataRepository;
-  private final SensorDataRepository sensorDataRepository;
-
   // MAPPINGS FOR HOURLY
   private static final List<HourlySensorMapping> HOURLY_FIELDS =
       List.of(
@@ -84,7 +79,6 @@ public class AggregationServiceImpl implements AggregationService {
               TempSensorData::getSpeed,
               HourlyAggregation::setSpeedSumValue,
               HourlyAggregation::setSpeedAvgValue));
-
   // MAPPINGS FOR DAILY
   private static final List<DailySensorMapping> DAILY_FIELDS =
       List.of(
@@ -148,6 +142,10 @@ public class AggregationServiceImpl implements AggregationService {
               HourlyAggregation::getSpeedAvgValue,
               DailyAggregation::setSpeedSumValue,
               DailyAggregation::setSpeedAvgValue));
+  private final HourlyAggregationRepository hourlyAggregationRepository;
+  private final DailyAggregationRepository dailyAggregationRepository;
+  private final TempSensorDataRepository tempSensorDataRepository;
+  private final SensorDataRepository sensorDataRepository;
 
   @Override
   @Transactional

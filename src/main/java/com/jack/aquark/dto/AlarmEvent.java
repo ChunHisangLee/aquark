@@ -10,11 +10,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AlarmEvent {
-    private String stationId;
-    private String csq;
-    private String parameter;
-    private BigDecimal sensorValue;
-    private BigDecimal thresholdValue;
-    private LocalDateTime obsTime;
-    private String message;
+  private String stationId;
+  private String csq;
+  private String parameter;
+  private BigDecimal sensorValue;
+  private BigDecimal thresholdValue;
+  private LocalDateTime obsTime;
+  private String message;
 }

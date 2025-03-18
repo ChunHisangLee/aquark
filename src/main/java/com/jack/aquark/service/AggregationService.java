@@ -2,7 +2,6 @@ package com.jack.aquark.service;
 
 import com.jack.aquark.entity.HourlyAggregation;
 import com.jack.aquark.entity.SensorData;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
