@@ -7,6 +7,8 @@ import com.jack.aquark.entity.DailyAggregation;
 import com.jack.aquark.entity.HourlyAggregation;
 import com.jack.aquark.entity.SensorData;
 import com.jack.aquark.entity.TempSensorData;
+import com.jack.aquark.exception.DataFetchException;
+import com.jack.aquark.exception.DataParseException;
 import com.jack.aquark.repository.DailyAggregationRepository;
 import com.jack.aquark.repository.HourlyAggregationRepository;
 import com.jack.aquark.repository.SensorDataRepository;
@@ -109,14 +111,14 @@ public class SensorDataServiceImpl implements SensorDataService {
 
     if (!response.getStatusCode().is2xxSuccessful()) {
       log.error("Failed to fetch data from {}, HTTP status: {}", url, response.getStatusCode());
-      throw new RuntimeException("Failed fetching data from " + url);
+      throw new DataFetchException("Failed fetching data from " + url);
     }
 
     try {
       return objectMapper.readValue(response.getBody(), RawDataWrapperDto.class);
     } catch (Exception e) {
       log.error("Error parsing JSON from {}", url, e);
-      throw new RuntimeException("Failed to parse JSON from " + url, e);
+      throw new DataParseException("Failed to parse JSON from " + url, e);
     }
   }
 
