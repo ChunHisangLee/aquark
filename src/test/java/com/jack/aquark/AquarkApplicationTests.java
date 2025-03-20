@@ -1,12 +1,19 @@
 package com.jack.aquark;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 
 @SpringBootTest
 class AquarkApplicationTests {
-    @Test
-    void contextLoads() {
-        // This test simply verifies the Spring application context can start up
-    }
+  @Autowired private ApplicationContext context;
+
+  @Test
+  void contextLoads() {
+    // This ensures the application context is loaded and is not null.
+    assertNotNull(context, "ApplicationContext should be loaded");
+  }
 }

@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,17 +40,17 @@ public class SensorDataController {
   @Operation(
       summary = "Search Sensor Data by Hour",
       description =
-          "Retrieve sensor data records within the specified hour range. Date-time format: yyyy-MM-dd HH:mm:ss.")
-  @ApiResponses({
-    @ApiResponse(
-        responseCode = MessagesConstants.STATUS_200,
-        description = "Sensor data retrieved successfully",
-        content = @Content(schema = @Schema(implementation = SensorData.class))),
-    @ApiResponse(
-        responseCode = MessagesConstants.STATUS_500,
-        description = "Internal Server Error",
-        content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
-  })
+          "Retrieve sensor data records within the specified hour range. Date-time format: yyyy-MM-dd HH:mm:ss.",
+      responses = {
+        @ApiResponse(
+            responseCode = MessagesConstants.STATUS_200,
+            description = "Sensor data retrieved successfully",
+            content = @Content(schema = @Schema(implementation = SensorData.class))),
+        @ApiResponse(
+            responseCode = MessagesConstants.STATUS_500,
+            description = "Internal Server Error",
+            content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
+      })
   @GetMapping("/search")
   public ResponseEntity<ApiResponseDto<List<SensorData>>> searchSensorData(
       @Parameter(
@@ -85,17 +84,17 @@ public class SensorDataController {
   @Operation(
       summary = "Get Hourly Statistics",
       description =
-          "Retrieve aggregated hourly sensor data statistics for the specified date range. Date-time format: yyyy-MM-dd HH:mm:ss.")
-  @ApiResponses({
-    @ApiResponse(
-        responseCode = MessagesConstants.STATUS_200,
-        description = "Hourly statistics retrieved successfully",
-        content = @Content(schema = @Schema(implementation = HourlyAggregation.class))),
-    @ApiResponse(
-        responseCode = MessagesConstants.STATUS_500,
-        description = "Internal Server Error",
-        content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
-  })
+          "Retrieve aggregated hourly sensor data statistics for the specified date range. Date-time format: yyyy-MM-dd HH:mm:ss.",
+      responses = {
+        @ApiResponse(
+            responseCode = MessagesConstants.STATUS_200,
+            description = "Hourly statistics retrieved successfully",
+            content = @Content(schema = @Schema(implementation = HourlyAggregation.class))),
+        @ApiResponse(
+            responseCode = MessagesConstants.STATUS_500,
+            description = "Internal Server Error",
+            content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
+      })
   @GetMapping("/statistics/hourly")
   public ResponseEntity<ApiResponseDto<List<HourlyAggregation>>> getHourlyStats(
       @Parameter(
@@ -129,17 +128,17 @@ public class SensorDataController {
   @Operation(
       summary = "Get Daily Statistics",
       description =
-          "Retrieve aggregated daily sensor data statistics for the specified date range.")
-  @ApiResponses({
-    @ApiResponse(
-        responseCode = MessagesConstants.STATUS_200,
-        description = "Daily statistics retrieved successfully",
-        content = @Content(schema = @Schema(implementation = DailyAggregation.class))),
-    @ApiResponse(
-        responseCode = MessagesConstants.STATUS_500,
-        description = "Internal Server Error",
-        content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
-  })
+          "Retrieve aggregated daily sensor data statistics for the specified date range.",
+      responses = {
+        @ApiResponse(
+            responseCode = MessagesConstants.STATUS_200,
+            description = "Daily statistics retrieved successfully",
+            content = @Content(schema = @Schema(implementation = DailyAggregation.class))),
+        @ApiResponse(
+            responseCode = MessagesConstants.STATUS_500,
+            description = "Internal Server Error",
+            content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
+      })
   @GetMapping("/statistics/daily")
   public ResponseEntity<ApiResponseDto<List<DailyAggregation>>> getDailyStats(
       @Parameter(
@@ -173,17 +172,17 @@ public class SensorDataController {
   @Operation(
       summary = "Get Peak-Time Data",
       description =
-          "Retrieve sensor data for the specified period that falls within peak hours (defined as 07:30 to 17:30 on weekdays, all day on Thursdays and Fridays, and off on weekends). Date-time format: yyyy-MM-dd HH:mm:ss.")
-  @ApiResponses({
-    @ApiResponse(
-        responseCode = MessagesConstants.STATUS_200,
-        description = "Peak data statistics retrieved successfully",
-        content = @Content(schema = @Schema(implementation = SensorData.class))),
-    @ApiResponse(
-        responseCode = MessagesConstants.STATUS_500,
-        description = "Internal Server Error",
-        content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
-  })
+          "Retrieve sensor data for the specified period that falls within peak hours (defined as 07:30 to 17:30 on weekdays, all day on Thursdays and Fridays, and off on weekends). Date-time format: yyyy-MM-dd HH:mm:ss.",
+      responses = {
+        @ApiResponse(
+            responseCode = MessagesConstants.STATUS_200,
+            description = "Peak data statistics retrieved successfully",
+            content = @Content(schema = @Schema(implementation = SensorData.class))),
+        @ApiResponse(
+            responseCode = MessagesConstants.STATUS_500,
+            description = "Internal Server Error",
+            content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
+      })
   @GetMapping("/peak")
   public ResponseEntity<ApiResponseDto<List<SensorData>>> getPeakData(
       @Parameter(
@@ -217,17 +216,17 @@ public class SensorDataController {
   @Operation(
       summary = "Get Off-Peak Data",
       description =
-          "Retrieve sensor data for the specified period that falls outside peak hours. Date-time format: yyyy-MM-dd HH:mm:ss.")
-  @ApiResponses({
-    @ApiResponse(
-        responseCode = MessagesConstants.STATUS_200,
-        description = "Off-Peak data statistics retrieved successfully",
-        content = @Content(schema = @Schema(implementation = SensorData.class))),
-    @ApiResponse(
-        responseCode = MessagesConstants.STATUS_500,
-        description = "Internal Server Error",
-        content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
-  })
+          "Retrieve sensor data for the specified period that falls outside peak hours. Date-time format: yyyy-MM-dd HH:mm:ss.",
+      responses = {
+        @ApiResponse(
+            responseCode = MessagesConstants.STATUS_200,
+            description = "Off-Peak data statistics retrieved successfully",
+            content = @Content(schema = @Schema(implementation = SensorData.class))),
+        @ApiResponse(
+            responseCode = MessagesConstants.STATUS_500,
+            description = "Internal Server Error",
+            content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
+      })
   @GetMapping("/off-peak")
   public ResponseEntity<ApiResponseDto<List<SensorData>>> getOffPeakData(
       @Parameter(

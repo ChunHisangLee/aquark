@@ -36,6 +36,7 @@ public class SensorDataServiceImpl implements SensorDataService {
 
   private static final DateTimeFormatter FORMATTER =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
   private final SensorDataRepository sensorDataRepository;
   private final TempSensorDataRepository tempSensorDataRepository;
   private final HourlyAggregationRepository hourlyAggregationRepository;
@@ -43,17 +44,13 @@ public class SensorDataServiceImpl implements SensorDataService {
   private final AggregationService aggregationService;
   private final ObjectMapper objectMapper;
 
-  /**
-   * 1) Fetch & save raw sensor data to both SensorData + TempSensorData. No aggregator logic
-   * here—unchanged from your typical approach.
-   */
   @Override
   @CacheEvict(
       value = {"sensorData", "hourlyAggregation"},
       allEntries = true)
   public void fetchAndSaveSensorData(String apiUrl) {
     try {
-      // Fetch the wrapper from external URL
+      // Fetch the wrapper from the external URL
       RawDataWrapperDto wrapper = fetchRawDataFromUrl(apiUrl);
       if (wrapper == null || wrapper.getRaw() == null || wrapper.getRaw().isEmpty()) {
         log.warn("No raw sensor data found in the response from URL: {}", apiUrl);
@@ -62,40 +59,47 @@ public class SensorDataServiceImpl implements SensorDataService {
 
       // Iterate raw items
       for (RawDataItemDto item : wrapper.getRaw()) {
-        try {
-          LocalDateTime obsTime = LocalDateTime.parse(item.getObsTime(), FORMATTER);
-          String stationId = item.getStationId();
-          String csq = item.getCsq();
-
-          // Check duplicates
-          if (sensorDataRepository.existsByStationIdAndObsTimeAndCsq(stationId, obsTime, csq)) {
-            log.info(
-                "Duplicate data. Skipping stationId={}, obsTime={}, csq={}",
-                stationId,
-                obsTime,
-                csq);
-            continue;
-          }
-
-          // Create & save main sensor data
-          SensorData data = parseSensorData(item, obsTime);
-          assert data != null;
-          sensorDataRepository.save(data);
-
-          // Create & save temp sensor data (for aggregator usage)
-          TempSensorData tempData = parseTempSensorData(item, obsTime);
-          assert tempData != null;
-          tempSensorDataRepository.save(tempData);
-
-        } catch (Exception e) {
-          log.error("Error processing raw item: {}", item, e);
-        }
+        processRawItem(item);
       }
 
       log.info("Completed fetching & storing raw sensor data from {}", apiUrl);
 
     } catch (Exception e) {
       log.error("Error fetching/saving sensor data from URL: {}", apiUrl, e);
+    }
+  }
+
+  private void processRawItem(RawDataItemDto item) {
+    try {
+      LocalDateTime obsTime = LocalDateTime.parse(item.getObsTime(), FORMATTER);
+      String stationId = item.getStationId();
+      String csq = item.getCsq();
+
+      // Check duplicates
+      if (sensorDataRepository.existsByStationIdAndObsTimeAndCsq(stationId, obsTime, csq)) {
+        log.info(
+            "Duplicate data. Skipping stationId={}, obsTime={}, csq={}", stationId, obsTime, csq);
+        return;
+      }
+
+      // Create & save main sensor data
+      SensorData data = parseSensorData(item, obsTime);
+      if (data == null) {
+        log.warn("Sensor data was null for item: {}", item);
+        return;
+      }
+      sensorDataRepository.save(data);
+
+      // Create & save temp sensor data (for aggregator usage)
+      TempSensorData tempData = parseTempSensorData(item, obsTime);
+      if (tempData == null) {
+        log.warn("Temp sensor data was null for item: {}", item);
+        return;
+      }
+      tempSensorDataRepository.save(tempData);
+
+    } catch (Exception e) {
+      log.error("Error processing raw item: {}", item, e);
     }
   }
 
@@ -118,7 +122,6 @@ public class SensorDataServiceImpl implements SensorDataService {
 
   private SensorData parseSensorData(RawDataItemDto item, LocalDateTime obsTime) {
     RawDataItemDto.Sensor sensor = item.getSensor();
-
     if (sensor == null) {
       return null;
     }
@@ -144,7 +147,6 @@ public class SensorDataServiceImpl implements SensorDataService {
 
   private TempSensorData parseTempSensorData(RawDataItemDto item, LocalDateTime obsTime) {
     RawDataItemDto.Sensor sensor = item.getSensor();
-
     if (sensor == null) {
       return null;
     }
@@ -169,9 +171,7 @@ public class SensorDataServiceImpl implements SensorDataService {
   }
 
   // ----------------------------------------------------------------------------
-  // Reading from the aggregator tables (unchanged aggregator code).
-  // Just do "like getHourlyData" => read from HourlyAggregationRepository &
-  // DailyAggregationRepository
+  // Reading from the aggregator tables
   // ----------------------------------------------------------------------------
 
   @Override
@@ -179,7 +179,6 @@ public class SensorDataServiceImpl implements SensorDataService {
       value = "hourlyAggregation",
       key = "#start.toLocalDate().toString() + '_' + #end.toLocalDate().toString()")
   public List<HourlyAggregation> getHourlyAverage(LocalDateTime start, LocalDateTime end) {
-    // aggregator logic remains in AggregationServiceImpl, but we only need to do a simple read:
     LocalDate startDate = start.toLocalDate();
     LocalDate endDate = end.toLocalDate();
     return hourlyAggregationRepository.findByObsDateBetween(startDate, endDate);
@@ -187,7 +186,6 @@ public class SensorDataServiceImpl implements SensorDataService {
 
   @Override
   public List<DailyAggregation> getDailyAverage(LocalDateTime start, LocalDateTime end) {
-    // same approach as hourly, but reading from daily_aggregation
     LocalDate startDate = start.toLocalDate();
     LocalDate endDate = end.toLocalDate();
     return dailyAggregationRepository.findByObsDateBetween(startDate, endDate);
@@ -195,7 +193,6 @@ public class SensorDataServiceImpl implements SensorDataService {
 
   @Override
   public List<SensorData> getPeakTimeData(LocalDateTime start, LocalDateTime end) {
-    // aggregatorService has getSensorDataByTimeRange(...) that returns List<SensorData>
     List<SensorData> allData = aggregationService.getSensorDataByTimeRange(start, end);
     return allData.stream()
         .filter(Objects::nonNull)

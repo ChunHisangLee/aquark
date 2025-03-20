@@ -1,7 +1,6 @@
 package com.jack.aquark.controller;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -37,8 +36,7 @@ class AlarmThresholdControllerTest {
     threshold.setParameter("v1");
     threshold.setThresholdValue(new BigDecimal("100.0"));
 
-    when(alarmThresholdService.getThreshold(eq("240627"), eq("31"), eq("v1")))
-        .thenReturn(threshold);
+    when(alarmThresholdService.getThreshold("240627", "31", "v1")).thenReturn(threshold);
 
     mockMvc
         .perform(
@@ -57,7 +55,7 @@ class AlarmThresholdControllerTest {
 
   @Test
   void testGetThreshold_NotFound() throws Exception {
-    when(alarmThresholdService.getThreshold(eq("240627"), eq("31"), eq("v1"))).thenReturn(null);
+    when(alarmThresholdService.getThreshold("240627", "31", "v1")).thenReturn(null);
 
     mockMvc
         .perform(

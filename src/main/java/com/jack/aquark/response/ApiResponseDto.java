@@ -5,9 +5,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-/**
- * A wrapper for either a success response (data) or an error (error).
- */
+/** A wrapper for either a success response (data) or an error (error). */
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)

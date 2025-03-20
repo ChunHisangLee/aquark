@@ -22,7 +22,7 @@ import java.util.*;
 import org.junit.jupiter.api.*;
 import org.mockito.*;
 
-public class SensorDataServiceImplTest {
+class SensorDataServiceImplTest {
 
   @Mock private SensorDataRepository sensorDataRepository;
   @Mock private TempSensorDataRepository tempSensorDataRepository;
@@ -139,8 +139,7 @@ public class SensorDataServiceImplTest {
     List<HourlyAggregation> fakeList = Collections.singletonList(agg);
 
     // 3) Stub repo
-    when(hourlyAggregationRepository.findByObsDateBetween(
-            eq(start.toLocalDate()), eq(end.toLocalDate())))
+    when(hourlyAggregationRepository.findByObsDateBetween(start.toLocalDate(), end.toLocalDate()))
         .thenReturn(fakeList);
 
     // 4) Service
@@ -159,7 +158,7 @@ public class SensorDataServiceImplTest {
     // 6) Verify
     assertEquals(1, result.size());
     verify(hourlyAggregationRepository, times(1))
-        .findByObsDateBetween(eq(start.toLocalDate()), eq(end.toLocalDate()));
+        .findByObsDateBetween(start.toLocalDate(), end.toLocalDate());
   }
 
   @Test
@@ -172,8 +171,7 @@ public class SensorDataServiceImplTest {
     List<DailyAggregation> fakeList = Collections.singletonList(dailyAgg);
 
     // 2) Stub daily repo
-    when(dailyAggregationRepository.findByObsDateBetween(
-            eq(start.toLocalDate()), eq(end.toLocalDate())))
+    when(dailyAggregationRepository.findByObsDateBetween(start.toLocalDate(), end.toLocalDate()))
         .thenReturn(fakeList);
 
     // 3) Service
@@ -192,7 +190,7 @@ public class SensorDataServiceImplTest {
     // 5) Verify
     assertEquals(1, result.size());
     verify(dailyAggregationRepository, times(1))
-        .findByObsDateBetween(eq(start.toLocalDate()), eq(end.toLocalDate()));
+        .findByObsDateBetween(start.toLocalDate(), end.toLocalDate());
   }
 
   @Test
@@ -223,8 +221,7 @@ public class SensorDataServiceImplTest {
     LocalDateTime rangeEnd = LocalDateTime.of(2025, 3, 25, 0, 0, 0);
 
     // 3) Stub aggregator
-    when(aggregationService.getSensorDataByTimeRange(eq(rangeStart), eq(rangeEnd)))
-        .thenReturn(allData);
+    when(aggregationService.getSensorDataByTimeRange(rangeStart, rangeEnd)).thenReturn(allData);
 
     // 4) Service
     SensorDataServiceImpl service =
@@ -274,8 +271,7 @@ public class SensorDataServiceImplTest {
     LocalDateTime rangeEnd = LocalDateTime.of(2025, 3, 25, 0, 0, 0);
 
     // 3) Stub aggregator
-    when(aggregationService.getSensorDataByTimeRange(eq(rangeStart), eq(rangeEnd)))
-        .thenReturn(allData);
+    when(aggregationService.getSensorDataByTimeRange(rangeStart, rangeEnd)).thenReturn(allData);
 
     // 4) Service
     SensorDataServiceImpl service =

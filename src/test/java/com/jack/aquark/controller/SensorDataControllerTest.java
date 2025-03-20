@@ -21,7 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = SensorDataController.class)
-public class SensorDataControllerTest {
+class SensorDataControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
@@ -32,7 +32,7 @@ public class SensorDataControllerTest {
   @Autowired private ObjectMapper objectMapper;
 
   @Test
-  public void testSearchSensorData_Success() throws Exception {
+  void testSearchSensorData_Success() throws Exception {
     // Prepare test data for the /search endpoint.
     SensorData sensorData = new SensorData();
     sensorData.setStationId("station1");
@@ -56,7 +56,7 @@ public class SensorDataControllerTest {
   }
 
   @Test
-  public void testGetHourlyStats_Success() throws Exception {
+  void testGetHourlyStats_Success() throws Exception {
     HourlyAggregation agg = new HourlyAggregation();
     agg.setStationId("station1");
     List<HourlyAggregation> list = Collections.singletonList(agg);
@@ -75,7 +75,7 @@ public class SensorDataControllerTest {
   }
 
   @Test
-  public void testGetPeakData_Success() throws Exception {
+  void testGetPeakData_Success() throws Exception {
     SensorData sensorData = new SensorData();
     sensorData.setStationId("station1");
     sensorData.setObsTime(LocalDateTime.of(2025, 3, 11, 16, 0, 0)); // Assume peak time.
@@ -96,7 +96,7 @@ public class SensorDataControllerTest {
   }
 
   @Test
-  public void testGetOffPeakData_Success() throws Exception {
+  void testGetOffPeakData_Success() throws Exception {
     SensorData sensorData = new SensorData();
     sensorData.setStationId("station2");
     sensorData.setObsTime(LocalDateTime.of(2025, 3, 11, 12, 0, 0)); // Assume off-peak time.

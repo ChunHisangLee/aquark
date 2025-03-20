@@ -138,15 +138,17 @@ Example migration script file:
 - V1__Initial_setup.sql
 
   ```sql
+
 CREATE TABLE alarm_threshold
 (
-    id              BIGSERIAL PRIMARY KEY,
-    station_id      VARCHAR(50)    NOT NULL,
-    csq             VARCHAR(20)    NOT NULL,
-    parameter       VARCHAR(50)    NOT NULL,
-    threshold_value NUMERIC(19, 4) NOT NULL,
-    CONSTRAINT unique_threshold UNIQUE (station_id, csq, parameter)
+id BIGSERIAL PRIMARY KEY,
+station_id VARCHAR(50)    NOT NULL,
+csq VARCHAR(20)    NOT NULL,
+parameter VARCHAR(50)    NOT NULL,
+threshold_value NUMERIC(19, 4) NOT NULL,
+CONSTRAINT unique_threshold UNIQUE (station_id, csq, parameter)
 );
+
   ```
 
 ---

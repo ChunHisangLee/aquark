@@ -24,7 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class AggregationServiceImplTest {
+class AggregationServiceImplTest {
 
   @Mock private HourlyAggregationRepository hourlyAggregationRepository;
 
@@ -35,7 +35,7 @@ public class AggregationServiceImplTest {
   @InjectMocks private AggregationServiceImpl aggregationService;
 
   @Test
-  public void testAggregateHourlyData_NoData() {
+  void testAggregateHourlyData_NoData() {
     when(tempSensorDataRepository.findAll()).thenReturn(Collections.emptyList());
 
     aggregationService.aggregateHourlyData();
@@ -45,7 +45,7 @@ public class AggregationServiceImplTest {
   }
 
   @Test
-  public void testAggregateHourlyData_WithData() {
+  void testAggregateHourlyData_WithData() {
     TempSensorData temp1 = new TempSensorData();
     temp1.setStationId("stationA");
     temp1.setObsTime(LocalDateTime.of(2025, 3, 11, 10, 15));
@@ -70,7 +70,7 @@ public class AggregationServiceImplTest {
   }
 
   @Test
-  public void testAggregateDailyData_WithData() {
+  void testAggregateDailyData_WithData() {
     HourlyAggregation ha1 = new HourlyAggregation();
     ha1.setStationId("stationB");
     ha1.setObsDate(LocalDate.of(2025, 3, 11));
