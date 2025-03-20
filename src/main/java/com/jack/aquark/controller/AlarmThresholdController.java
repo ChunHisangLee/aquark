@@ -2,6 +2,7 @@ package com.jack.aquark.controller;
 
 import com.jack.aquark.constant.MessagesConstants;
 import com.jack.aquark.entity.AlarmThreshold;
+import com.jack.aquark.exception.ThresholdNotFoundException;
 import com.jack.aquark.response.ApiResponseDto;
 import com.jack.aquark.response.ErrorResponseDto;
 import com.jack.aquark.response.ResponseDto;
@@ -62,36 +63,57 @@ public class AlarmThresholdController {
           @RequestParam(required = false)
           String parameter) {
 
-    List<AlarmThreshold> thresholds;
-
-    if (stationId != null && csq != null && parameter != null) {
-      AlarmThreshold threshold = alarmThresholdService.getThreshold(stationId, csq, parameter);
-      if (threshold == null) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body(
-                ApiResponseDto.error(
-                    new ErrorResponseDto(
-                        "/api/alarm/get",
-                        HttpStatus.NOT_FOUND,
-                        "Threshold not found.",
-                        LocalDateTime.now())));
+    try {
+      // If all three parameters are provided, retrieve one threshold
+      if (stationId != null && csq != null && parameter != null) {
+        AlarmThreshold threshold = alarmThresholdService.getThreshold(stationId, csq, parameter);
+        // Defensive check in case the service unexpectedly returns null
+        if (threshold == null) {
+          throw new ThresholdNotFoundException(
+              "Threshold not found for station "
+                  + stationId
+                  + ", csq "
+                  + csq
+                  + ", parameter "
+                  + parameter);
+        }
+        return ResponseEntity.ok(ApiResponseDto.success(List.of(threshold)));
+      } else {
+        // Otherwise, return all thresholds
+        List<AlarmThreshold> thresholds = alarmThresholdService.getAllThresholds();
+        if (thresholds == null || thresholds.isEmpty()) {
+          return ResponseEntity.status(HttpStatus.NOT_FOUND)
+              .body(
+                  ApiResponseDto.error(
+                      new ErrorResponseDto(
+                          "/api/alarm/get",
+                          MessagesConstants.STATUS_404,
+                          "Threshold not found.",
+                          LocalDateTime.now())));
+        }
+        return ResponseEntity.ok(ApiResponseDto.success(thresholds));
       }
-      thresholds = List.of(threshold);
-    } else {
-      thresholds = alarmThresholdService.getAllThresholds();
-      if (thresholds == null || thresholds.isEmpty()) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body(
-                ApiResponseDto.error(
-                    new ErrorResponseDto(
-                        "/api/alarm/get",
-                        HttpStatus.NOT_FOUND,
-                        "Threshold not found.",
-                        LocalDateTime.now())));
-      }
+    } catch (ThresholdNotFoundException e) {
+      log.error("Threshold not found", e);
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+          .body(
+              ApiResponseDto.error(
+                  new ErrorResponseDto(
+                      "/api/alarm/get",
+                      MessagesConstants.STATUS_404,
+                      "Threshold not found.",
+                      LocalDateTime.now())));
+    } catch (Exception e) {
+      log.error("Unexpected error retrieving threshold", e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(
+              ApiResponseDto.error(
+                  new ErrorResponseDto(
+                      "/api/alarm/get",
+                      MessagesConstants.STATUS_500,
+                      "Internal server error.",
+                      LocalDateTime.now())));
     }
-
-    return ResponseEntity.ok(ApiResponseDto.success(thresholds));
   }
 
   @Operation(
@@ -125,7 +147,7 @@ public class AlarmThresholdController {
               ApiResponseDto.error(
                   new ErrorResponseDto(
                       "/api/alarm/update",
-                      HttpStatus.CONFLICT,
+                      MessagesConstants.STATUS_409,
                       "Could not update threshold. Possibly a conflict or missing data.",
                       LocalDateTime.now())));
     }
@@ -158,7 +180,7 @@ public class AlarmThresholdController {
               ApiResponseDto.error(
                   new ErrorResponseDto(
                       "/api/alarm/add",
-                      HttpStatus.CONFLICT,
+                      MessagesConstants.STATUS_409,
                       "Threshold already exists for the given station, CSQ, and sensor parameter.",
                       LocalDateTime.now())));
     }

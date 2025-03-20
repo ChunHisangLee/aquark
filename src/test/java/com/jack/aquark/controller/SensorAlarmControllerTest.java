@@ -48,12 +48,13 @@ class SensorAlarmControllerTest {
                 .param("intervalMinutes", "60")
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.alarmCount").value(1))
-        .andExpect(jsonPath("$.alarmDetails[0].stationId").value("240627"))
-        .andExpect(jsonPath("$.alarmDetails[0].parameter").value("v1"))
-        .andExpect(jsonPath("$.alarmDetails[0].sensorValue").value(200.00))
-        .andExpect(jsonPath("$.alarmDetails[0].thresholdValue").value(150.00))
-        .andExpect(jsonPath("$.message").value("Alarm check completed. 1 alarms triggered."));
+        // Expect the result wrapped under the "data" field.
+        .andExpect(jsonPath("$.data.alarmCount").value(1))
+        .andExpect(jsonPath("$.data.alarmDetails[0].stationId").value("240627"))
+        .andExpect(jsonPath("$.data.alarmDetails[0].parameter").value("v1"))
+        .andExpect(jsonPath("$.data.alarmDetails[0].sensorValue").value(200.00))
+        .andExpect(jsonPath("$.data.alarmDetails[0].thresholdValue").value(150.00))
+        .andExpect(jsonPath("$.data.message").value("Alarm check completed. 1 alarms triggered."));
   }
 
   @Test
@@ -68,7 +69,8 @@ class SensorAlarmControllerTest {
                 .param("intervalMinutes", "60")
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isInternalServerError())
-        .andExpect(jsonPath("$.statusCode").value(MessagesConstants.STATUS_500))
-        .andExpect(jsonPath("$.statusMsg").value("Error fetching alarms statistics"));
+        // Error response is wrapped under "error"
+        .andExpect(jsonPath("$.error.errorCode").value(MessagesConstants.STATUS_500))
+        .andExpect(jsonPath("$.error.errorMessage").value("Error fetching alarms statistics"));
   }
 }

@@ -75,7 +75,7 @@ public class SensorDataController {
               ApiResponseDto.error(
                   new ErrorResponseDto(
                       "/api/sensor/search",
-                      HttpStatus.INTERNAL_SERVER_ERROR,
+                      MessagesConstants.STATUS_500,
                       "Error searching sensor data",
                       LocalDateTime.now())));
     }
@@ -119,7 +119,7 @@ public class SensorDataController {
               ApiResponseDto.error(
                   new ErrorResponseDto(
                       "/api/sensor/statistics/hourly",
-                      HttpStatus.INTERNAL_SERVER_ERROR,
+                      MessagesConstants.STATUS_500,
                       "Error fetching hourly statistics",
                       LocalDateTime.now())));
     }
@@ -163,7 +163,7 @@ public class SensorDataController {
               ApiResponseDto.error(
                   new ErrorResponseDto(
                       "/api/sensor/statistics/daily",
-                      HttpStatus.INTERNAL_SERVER_ERROR,
+                      MessagesConstants.STATUS_500,
                       "Error fetching daily statistics",
                       LocalDateTime.now())));
     }
@@ -207,7 +207,7 @@ public class SensorDataController {
               ApiResponseDto.error(
                   new ErrorResponseDto(
                       "/api/sensor/peak",
-                      HttpStatus.INTERNAL_SERVER_ERROR,
+                      MessagesConstants.STATUS_500,
                       "Error fetching peak time data",
                       LocalDateTime.now())));
     }
@@ -251,7 +251,7 @@ public class SensorDataController {
               ApiResponseDto.error(
                   new ErrorResponseDto(
                       "/api/sensor/off-peak",
-                      HttpStatus.INTERNAL_SERVER_ERROR,
+                      MessagesConstants.STATUS_500,
                       "Error fetching off-peak data",
                       LocalDateTime.now())));
     }

@@ -26,13 +26,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AggregationServiceImplTest {
 
-  @Mock private HourlyAggregationRepository hourlyAggregationRepository;
+  @Mock
+  private HourlyAggregationRepository hourlyAggregationRepository;
 
-  @Mock private DailyAggregationRepository dailyAggregationRepository;
+  @Mock
+  private DailyAggregationRepository dailyAggregationRepository;
 
-  @Mock private TempSensorDataRepository tempSensorDataRepository;
+  @Mock
+  private TempSensorDataRepository tempSensorDataRepository;
 
-  @InjectMocks private AggregationServiceImpl aggregationService;
+  @InjectMocks
+  private AggregationServiceImpl aggregationService;
 
   @Test
   void testAggregateHourlyData_NoData() {
@@ -46,40 +50,45 @@ class AggregationServiceImplTest {
 
   @Test
   void testAggregateHourlyData_WithData() {
+    // Create two TempSensorData records in the same group:
     TempSensorData temp1 = new TempSensorData();
-    temp1.setStationId("stationA");
+    temp1.setStationId("240627");
     temp1.setObsTime(LocalDateTime.of(2025, 3, 11, 10, 15));
     temp1.setCsq("31");
     temp1.setV1(new BigDecimal("10.0"));
+    // (Other sensor fields can be left null if not mapped)
 
     TempSensorData temp2 = new TempSensorData();
-    temp2.setStationId("stationA");
+    temp2.setStationId("240627");
     temp2.setObsTime(LocalDateTime.of(2025, 3, 11, 10, 30));
     temp2.setCsq("31");
     temp2.setV1(new BigDecimal("20.0"));
 
     when(tempSensorDataRepository.findAll()).thenReturn(Arrays.asList(temp1, temp2));
+    // When checking for an existing aggregation, return empty to force an insert.
     when(hourlyAggregationRepository.findByStationIdAndObsDateAndObsHourAndCsq(
             anyString(), any(LocalDate.class), anyInt(), anyString()))
-        .thenReturn(Optional.empty());
+            .thenReturn(Optional.empty());
 
     aggregationService.aggregateHourlyData();
 
     verify(tempSensorDataRepository).findAll();
+    // Expect one aggregated row to be saved.
     verify(hourlyAggregationRepository, times(1)).save(any(HourlyAggregation.class));
   }
 
   @Test
   void testAggregateDailyData_WithData() {
+    // Create two hourly aggregations for the same station/date/csq.
     HourlyAggregation ha1 = new HourlyAggregation();
-    ha1.setStationId("stationB");
+    ha1.setStationId("240708");
     ha1.setObsDate(LocalDate.of(2025, 3, 11));
     ha1.setCsq("31");
     ha1.setV1SumValue(new BigDecimal("10.0"));
     ha1.setV1AvgValue(new BigDecimal("10.0"));
 
     HourlyAggregation ha2 = new HourlyAggregation();
-    ha2.setStationId("stationB");
+    ha2.setStationId("240708");
     ha2.setObsDate(LocalDate.of(2025, 3, 11));
     ha2.setCsq("31");
     ha2.setV1SumValue(new BigDecimal("20.0"));
@@ -88,11 +97,12 @@ class AggregationServiceImplTest {
     when(hourlyAggregationRepository.findAll()).thenReturn(Arrays.asList(ha1, ha2));
     when(dailyAggregationRepository.findByStationIdAndObsDateAndCsq(
             anyString(), any(LocalDate.class), anyString()))
-        .thenReturn(Optional.empty());
+            .thenReturn(Optional.empty());
 
     aggregationService.aggregateDailyData();
 
     verify(hourlyAggregationRepository).findAll();
+    // Expect at least one daily aggregation row saved.
     verify(dailyAggregationRepository, atLeastOnce()).save(any(DailyAggregation.class));
   }
 }

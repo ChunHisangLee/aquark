@@ -40,17 +40,17 @@ class AlarmThresholdControllerTest {
 
     mockMvc
         .perform(
-            get("/api/alarm")
+            get("/api/alarm/get")
                 .param("stationId", "240627")
                 .param("csq", "31")
                 .param("parameter", "v1"))
         .andExpect(status().isOk())
-        // Since the controller wraps a single object in a list, access the first element with $[0]
-        .andExpect(jsonPath("$[0].stationId").value("240627"))
-        .andExpect(jsonPath("$[0].csq").value("31"))
-        .andExpect(jsonPath("$[0].parameter").value("v1"))
+        // The controller wraps the list inside a "data" field.
+        .andExpect(jsonPath("$.data[0].stationId").value("240627"))
+        .andExpect(jsonPath("$.data[0].csq").value("31"))
+        .andExpect(jsonPath("$.data[0].parameter").value("v1"))
         // Expect numeric value 100.0 (JSON numbers are not formatted as strings)
-        .andExpect(jsonPath("$[0].thresholdValue").value(100.0));
+        .andExpect(jsonPath("$.data[0].thresholdValue").value(100.0));
   }
 
   @Test
@@ -59,7 +59,7 @@ class AlarmThresholdControllerTest {
 
     mockMvc
         .perform(
-            get("/api/alarm")
+            get("/api/alarm/get")
                 .param("stationId", "240627")
                 .param("csq", "31")
                 .param("parameter", "v1"))
@@ -82,9 +82,9 @@ class AlarmThresholdControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(threshold)))
         .andExpect(status().isOk())
-        // Updated JSON keys: statusCode and statusMsg
-        .andExpect(jsonPath("$.statusCode").value(MessagesConstants.STATUS_200))
-        .andExpect(jsonPath("$.statusMsg").value("Request processed successfully."));
+        // The success response is wrapped under "data".
+        .andExpect(jsonPath("$.data.statusCode").value(MessagesConstants.STATUS_200))
+        .andExpect(jsonPath("$.data.statusMsg").value("Request processed successfully."));
   }
 
   @Test
@@ -103,9 +103,10 @@ class AlarmThresholdControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(threshold)))
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.statusCode").value(MessagesConstants.STATUS_409))
+        // Since it's an error response, check under the "error" field instead of "data".
+        .andExpect(jsonPath("$.error.errorCode").value(MessagesConstants.STATUS_409))
         .andExpect(
-            jsonPath("$.statusMsg")
+            jsonPath("$.error.errorMessage")
                 .value("Could not update threshold. Possibly a conflict or missing data."));
   }
 }

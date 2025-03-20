@@ -13,6 +13,5 @@ import lombok.experimental.SuperBuilder;
 @Getter
 @Setter
 @SuperBuilder(toBuilder = true)
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class TempSensorData extends BaseSensorData {}

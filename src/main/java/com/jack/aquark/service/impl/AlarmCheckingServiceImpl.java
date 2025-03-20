@@ -4,6 +4,7 @@ import com.jack.aquark.dto.AlarmCheckResult;
 import com.jack.aquark.dto.AlarmDetail;
 import com.jack.aquark.dto.AlarmEvent;
 import com.jack.aquark.entity.SensorData;
+import com.jack.aquark.exception.ThresholdNotFoundException;
 import com.jack.aquark.service.AggregationService;
 import com.jack.aquark.service.AlarmCheckingService;
 import com.jack.aquark.service.AlarmThresholdService;
@@ -37,16 +38,17 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
     ZonedDateTime nowZoned = ZonedDateTime.now(TAIPEI_ZONE);
     ZonedDateTime startZoned = nowZoned.minusMinutes(intervalMinutes);
 
-    // Convert to LocalDateTime for repository compatibility if needed
+    // Convert to LocalDateTime for repository usage
     LocalDateTime now = nowZoned.toLocalDateTime();
     LocalDateTime startTime = startZoned.toLocalDateTime();
 
     log.info("StartTime: {}, EndTime: {}", startTime, now);
 
+    // Fetch sensor data from your aggregator or raw data
     List<SensorData> sensorDataList = aggregationService.getSensorDataByTimeRange(startTime, now);
     List<AlarmDetail> alarmDetails = new ArrayList<>();
 
-    // Check various sensor parameters and publish events if triggered.
+    // Check all relevant parameters
     checkAndAlarm(sensorDataList, "v1", alarmDetails);
     checkAndAlarm(sensorDataList, "v2", alarmDetails);
     checkAndAlarm(sensorDataList, "v3", alarmDetails);
@@ -67,12 +69,20 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
 
   private void checkAndAlarm(
       List<SensorData> sensorDataList, String parameter, List<AlarmDetail> alarmDetails) {
+
     for (SensorData data : sensorDataList) {
       BigDecimal value = getSensorValue(data, parameter);
-      if (value == null) continue;
+      if (value == null) {
+        // No sensor reading for this parameter, skip
+        continue;
+      }
+
       try {
+        // Try to fetch threshold
         var threshold =
             alarmThresholdService.getThreshold(data.getStationId(), data.getCsq(), parameter);
+
+        // If the sensor value exceeds the threshold, create an alarm
         if (value.compareTo(threshold.getThresholdValue()) > 0) {
           String msg =
               String.format(
@@ -83,9 +93,10 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
                   data.getCsq(),
                   value.toPlainString(),
                   threshold.getThresholdValue().toPlainString());
+
           log.warn("Alarm sent: {}", msg);
 
-          // Create an alarm detail.
+          // Add an AlarmDetail to the result
           AlarmDetail detail =
               new AlarmDetail(
                   data.getStationId(),
@@ -97,7 +108,7 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
                   msg);
           alarmDetails.add(detail);
 
-          // Create and send a Kafka alarm event.
+          // Send Kafka event
           AlarmEvent event =
               new AlarmEvent(
                   data.getStationId(),
@@ -109,9 +120,11 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
                   msg);
           kafkaProducerService.sendAlarmEvent(event);
         }
-      } catch (RuntimeException e) {
+
+      } catch (ThresholdNotFoundException ex) {
+        // Specifically handle missing threshold
         log.debug(
-            "No threshold configured for station {} parameter {} with csq {}. Skipping alarm check.",
+            "No threshold found for station={}, parameter={}, csq={}. Skipping alarm check.",
             data.getStationId(),
             parameter,
             data.getCsq());

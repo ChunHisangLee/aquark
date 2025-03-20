@@ -25,11 +25,11 @@ class SensorDataControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
+  @Autowired private ObjectMapper objectMapper;
+
   @MockBean private SensorDataService sensorDataService;
 
   @MockBean private AggregationService aggregationService;
-
-  @Autowired private ObjectMapper objectMapper;
 
   @Test
   void testSearchSensorData_Success() throws Exception {
@@ -51,8 +51,9 @@ class SensorDataControllerTest {
                 .param("end", "2025-03-11 23:00:00")
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].stationId").value("station1"))
-        .andExpect(jsonPath("$[0].csq").value("csq1"));
+        // Check inside the "data" field.
+        .andExpect(jsonPath("$.data[0].stationId").value("station1"))
+        .andExpect(jsonPath("$.data[0].csq").value("csq1"));
   }
 
   @Test
@@ -71,7 +72,8 @@ class SensorDataControllerTest {
                 .param("end", "2025-03-11 23:00:00")
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].stationId").value("station1"));
+        // Assert that the aggregation is wrapped inside "data".
+        .andExpect(jsonPath("$.data[0].stationId").value("station1"));
   }
 
   @Test
@@ -92,7 +94,8 @@ class SensorDataControllerTest {
                 .param("end", "2025-03-11 23:00:00")
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].stationId").value("station1"));
+        // Expect the result in "data".
+        .andExpect(jsonPath("$.data[0].stationId").value("station1"));
   }
 
   @Test
@@ -113,6 +116,7 @@ class SensorDataControllerTest {
                 .param("end", "2025-03-11 23:00:00")
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].stationId").value("station2"));
+        // Assert that the off-peak data is under "data".
+        .andExpect(jsonPath("$.data[0].stationId").value("station2"));
   }
 }

@@ -25,9 +25,13 @@ import org.mockito.*;
 class SensorDataServiceImplTest {
 
   @Mock private SensorDataRepository sensorDataRepository;
+
   @Mock private TempSensorDataRepository tempSensorDataRepository;
+
   @Mock private HourlyAggregationRepository hourlyAggregationRepository;
+
   @Mock private DailyAggregationRepository dailyAggregationRepository;
+
   @Mock private AggregationService aggregationService;
 
   private AutoCloseable closeable;
@@ -47,21 +51,46 @@ class SensorDataServiceImplTest {
     // 1) Prepare test data
     RawDataItemDto item = new RawDataItemDto();
     item.setObsTime("2025-03-16 10:00:00");
-    item.setStationId("station1");
-    item.setCsq("csq1");
+    item.setStationId("240708");
+    item.setCsq("31");
     item.setRainD(BigDecimal.ZERO);
 
+    // Prepare sensor sub-objects to avoid NPE in parseSensorData() and parseTempSensorData()
     RawDataItemDto.Sensor sensor = new RawDataItemDto.Sensor();
+
+    // Volt
     RawDataItemDto.Volt volt = new RawDataItemDto.Volt();
     volt.setV1(BigDecimal.ONE);
     volt.setV2(BigDecimal.valueOf(2.0));
+    volt.setV3(BigDecimal.TEN); // arbitrary value
+    volt.setV4(BigDecimal.TEN);
+    volt.setV5(BigDecimal.TEN);
+    volt.setV6(BigDecimal.TEN);
+    volt.setV7(BigDecimal.TEN);
     sensor.setVolt(volt);
+
+    // StickTxRh
+    RawDataItemDto.StickTxRh stickTxRh = new RawDataItemDto.StickTxRh();
+    stickTxRh.setRh(BigDecimal.valueOf(50));
+    stickTxRh.setTx(BigDecimal.valueOf(10));
+    sensor.setStickTxRh(stickTxRh);
+
+    // UltrasonicLevel
+    RawDataItemDto.UltrasonicLevel ultrasonic = new RawDataItemDto.UltrasonicLevel();
+    ultrasonic.setEcho(BigDecimal.valueOf(5));
+    sensor.setUltrasonicLevel(ultrasonic);
+
+    // WaterSpeedAquark
+    RawDataItemDto.WaterSpeedAquark waterSpeed = new RawDataItemDto.WaterSpeedAquark();
+    waterSpeed.setSpeed(BigDecimal.valueOf(3));
+    sensor.setWaterSpeedAquark(waterSpeed);
+
     item.setSensor(sensor);
 
     RawDataWrapperDto wrapper = new RawDataWrapperDto();
     wrapper.setRaw(Collections.singletonList(item));
 
-    // 2) Real service, then partial mock
+    // 2) Create real service and partial mock it
     SensorDataServiceImpl realService =
         new SensorDataServiceImpl(
             sensorDataRepository,
@@ -78,7 +107,7 @@ class SensorDataServiceImplTest {
 
     // 4) Stub duplicate-check => false
     when(sensorDataRepository.existsByStationIdAndObsTimeAndCsq(
-            eq("station1"), any(LocalDateTime.class), eq("csq1")))
+            eq("240708"), any(LocalDateTime.class), eq("31")))
         .thenReturn(false);
 
     // 5) Execute
@@ -91,17 +120,34 @@ class SensorDataServiceImplTest {
 
   @Test
   void testFetchAndSaveSensorData_withDuplicateData() {
-    // 1) Test data
+    // 1) Prepare test data
     RawDataItemDto item = new RawDataItemDto();
     item.setObsTime("2025-03-16 11:00:00");
-    item.setStationId("station1");
-    item.setCsq("csq1");
+    item.setStationId("240708");
+    item.setCsq("31");
     item.setRainD(BigDecimal.ZERO);
+
+    // Prepare sensor sub-objects (values not critical since duplicate check will prevent saving)
+    RawDataItemDto.Sensor sensor = new RawDataItemDto.Sensor();
+    RawDataItemDto.Volt volt = new RawDataItemDto.Volt();
+    volt.setV1(BigDecimal.ONE);
+    sensor.setVolt(volt);
+    RawDataItemDto.StickTxRh stickTxRh = new RawDataItemDto.StickTxRh();
+    stickTxRh.setRh(BigDecimal.valueOf(50));
+    stickTxRh.setTx(BigDecimal.valueOf(10));
+    sensor.setStickTxRh(stickTxRh);
+    RawDataItemDto.UltrasonicLevel ultrasonic = new RawDataItemDto.UltrasonicLevel();
+    ultrasonic.setEcho(BigDecimal.valueOf(5));
+    sensor.setUltrasonicLevel(ultrasonic);
+    RawDataItemDto.WaterSpeedAquark waterSpeed = new RawDataItemDto.WaterSpeedAquark();
+    waterSpeed.setSpeed(BigDecimal.valueOf(3));
+    sensor.setWaterSpeedAquark(waterSpeed);
+    item.setSensor(sensor);
 
     RawDataWrapperDto wrapper = new RawDataWrapperDto();
     wrapper.setRaw(Collections.singletonList(item));
 
-    // 2) Service + partial mock
+    // 2) Create real service and partial mock it
     SensorDataServiceImpl realService =
         new SensorDataServiceImpl(
             sensorDataRepository,
@@ -117,7 +163,7 @@ class SensorDataServiceImplTest {
 
     // Mark as duplicate
     when(sensorDataRepository.existsByStationIdAndObsTimeAndCsq(
-            eq("station1"), any(LocalDateTime.class), eq("csq1")))
+            eq("240708"), any(LocalDateTime.class), eq("31")))
         .thenReturn(true);
 
     // 3) Execute

@@ -1,6 +1,8 @@
 package com.jack.aquark.config;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,22 +43,22 @@ public class RedisConfig {
     RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
     config.setHostName(redisHost);
     config.setPort(redisPort);
-
     if (!redisPassword.isEmpty()) {
       config.setPassword(redisPassword);
     }
-
     return new LettuceConnectionFactory(config);
   }
 
-  /** Configures CacheManager to use a Jackson-based JSON serializer for caching. */
   @Bean
   public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-    // Create an ObjectMapper with any custom modules/config as needed
     ObjectMapper objectMapper = new ObjectMapper();
     objectMapper.findAndRegisterModules();
+    // Activate default typing to include type information during serialization.
+    objectMapper.activateDefaultTyping(
+        LaissezFaireSubTypeValidator.instance,
+        ObjectMapper.DefaultTyping.NON_FINAL,
+        JsonTypeInfo.As.PROPERTY);
 
-    // Use the constructor (mapper, type) to avoid the deprecated setObjectMapper(...)
     Jackson2JsonRedisSerializer<Object> jsonSerializer =
         new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
 
@@ -75,17 +77,21 @@ public class RedisConfig {
     RedisTemplate<String, Object> template = new RedisTemplate<>();
     template.setConnectionFactory(connectionFactory);
 
-    // Use String for keys
+    // Use String serializer for keys
     StringRedisSerializer keySerializer = new StringRedisSerializer();
     template.setKeySerializer(keySerializer);
     template.setHashKeySerializer(keySerializer);
 
-    // Use Jackson for values
     ObjectMapper objectMapper = new ObjectMapper();
     objectMapper.findAndRegisterModules();
+    // Include type information for value deserialization.
+    objectMapper.activateDefaultTyping(
+        LaissezFaireSubTypeValidator.instance,
+        ObjectMapper.DefaultTyping.NON_FINAL,
+        JsonTypeInfo.As.PROPERTY);
+
     Jackson2JsonRedisSerializer<Object> jsonSerializer =
         new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
-
     template.setValueSerializer(jsonSerializer);
     template.setHashValueSerializer(jsonSerializer);
 

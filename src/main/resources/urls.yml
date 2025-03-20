@@ -1,0 +1,7 @@
+api:
+  urls:
+    - "https://app.aquark.com.tw/api/raw/Angle2024/240627"
+    - "https://app.aquark.com.tw/api/raw/Angle2024/240706"
+    - "https://app.aquark.com.tw/api/raw/Angle2024/240708"
+    - "https://app.aquark.com.tw/api/raw/Angle2024/240709"
+    - "https://app.aquark.com.tw/api/raw/Angle2024/240710"

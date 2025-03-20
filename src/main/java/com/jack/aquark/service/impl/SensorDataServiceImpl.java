@@ -15,6 +15,7 @@ import com.jack.aquark.repository.SensorDataRepository;
 import com.jack.aquark.repository.TempSensorDataRepository;
 import com.jack.aquark.service.AggregationService;
 import com.jack.aquark.service.SensorDataService;
+import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -128,22 +129,56 @@ public class SensorDataServiceImpl implements SensorDataService {
       return null;
     }
 
+    BigDecimal v1 = null;
+    BigDecimal v2 = null;
+    BigDecimal v3 = null;
+    BigDecimal v4 = null;
+    BigDecimal v5 = null;
+    BigDecimal v6 = null;
+    BigDecimal v7 = null;
+    if (sensor.getVolt() != null) {
+      v1 = sensor.getVolt().getV1();
+      v2 = sensor.getVolt().getV2();
+      v3 = sensor.getVolt().getV3();
+      v4 = sensor.getVolt().getV4();
+      v5 = sensor.getVolt().getV5();
+      v6 = sensor.getVolt().getV6();
+      v7 = sensor.getVolt().getV7();
+    }
+
+    BigDecimal rh = null;
+    BigDecimal tx = null;
+    if (sensor.getStickTxRh() != null) {
+      rh = sensor.getStickTxRh().getRh();
+      tx = sensor.getStickTxRh().getTx();
+    }
+
+    BigDecimal echo = null;
+    if (sensor.getUltrasonicLevel() != null) {
+      echo = sensor.getUltrasonicLevel().getEcho();
+    }
+
+    BigDecimal speed = null;
+    if (sensor.getWaterSpeedAquark() != null) {
+      speed = sensor.getWaterSpeedAquark().getSpeed();
+    }
+
     return SensorData.builder()
         .stationId(item.getStationId())
         .obsTime(obsTime)
         .csq(item.getCsq())
         .rainD(item.getRainD())
-        .v1(sensor.getVolt().getV1())
-        .v2(sensor.getVolt().getV2())
-        .v3(sensor.getVolt().getV3())
-        .v4(sensor.getVolt().getV4())
-        .v5(sensor.getVolt().getV5())
-        .v6(sensor.getVolt().getV6())
-        .v7(sensor.getVolt().getV7())
-        .rh(sensor.getStickTxRh().getRh())
-        .tx(sensor.getStickTxRh().getTx())
-        .echo(sensor.getUltrasonicLevel().getEcho())
-        .speed(sensor.getWaterSpeedAquark().getSpeed())
+        .v1(v1)
+        .v2(v2)
+        .v3(v3)
+        .v4(v4)
+        .v5(v5)
+        .v6(v6)
+        .v7(v7)
+        .rh(rh)
+        .tx(tx)
+        .echo(echo)
+        .speed(speed)
         .build();
   }
 
@@ -153,22 +188,56 @@ public class SensorDataServiceImpl implements SensorDataService {
       return null;
     }
 
+    BigDecimal v1 = null;
+    BigDecimal v2 = null;
+    BigDecimal v3 = null;
+    BigDecimal v4 = null;
+    BigDecimal v5 = null;
+    BigDecimal v6 = null;
+    BigDecimal v7 = null;
+    if (sensor.getVolt() != null) {
+      v1 = sensor.getVolt().getV1();
+      v2 = sensor.getVolt().getV2();
+      v3 = sensor.getVolt().getV3();
+      v4 = sensor.getVolt().getV4();
+      v5 = sensor.getVolt().getV5();
+      v6 = sensor.getVolt().getV6();
+      v7 = sensor.getVolt().getV7();
+    }
+
+    BigDecimal rh = null;
+    BigDecimal tx = null;
+    if (sensor.getStickTxRh() != null) {
+      rh = sensor.getStickTxRh().getRh();
+      tx = sensor.getStickTxRh().getTx();
+    }
+
+    BigDecimal echo = null;
+    if (sensor.getUltrasonicLevel() != null) {
+      echo = sensor.getUltrasonicLevel().getEcho();
+    }
+
+    BigDecimal speed = null;
+    if (sensor.getWaterSpeedAquark() != null) {
+      speed = sensor.getWaterSpeedAquark().getSpeed();
+    }
+
     return TempSensorData.builder()
         .stationId(item.getStationId())
         .obsTime(obsTime)
         .csq(item.getCsq())
         .rainD(item.getRainD())
-        .v1(sensor.getVolt().getV1())
-        .v2(sensor.getVolt().getV2())
-        .v3(sensor.getVolt().getV3())
-        .v4(sensor.getVolt().getV4())
-        .v5(sensor.getVolt().getV5())
-        .v6(sensor.getVolt().getV6())
-        .v7(sensor.getVolt().getV7())
-        .rh(sensor.getStickTxRh().getRh())
-        .tx(sensor.getStickTxRh().getTx())
-        .echo(sensor.getUltrasonicLevel().getEcho())
-        .speed(sensor.getWaterSpeedAquark().getSpeed())
+        .v1(v1)
+        .v2(v2)
+        .v3(v3)
+        .v4(v4)
+        .v5(v5)
+        .v6(v6)
+        .v7(v7)
+        .rh(rh)
+        .tx(tx)
+        .echo(echo)
+        .speed(speed)
         .build();
   }
 
