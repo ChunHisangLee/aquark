@@ -79,10 +79,12 @@ public class SensorDataServiceImpl implements SensorDataService {
 
           // Create & save main sensor data
           SensorData data = parseSensorData(item, obsTime);
+          assert data != null;
           sensorDataRepository.save(data);
 
           // Create & save temp sensor data (for aggregator usage)
           TempSensorData tempData = parseTempSensorData(item, obsTime);
+          assert tempData != null;
           tempSensorDataRepository.save(tempData);
 
         } catch (Exception e) {
@@ -116,55 +118,53 @@ public class SensorDataServiceImpl implements SensorDataService {
 
   private SensorData parseSensorData(RawDataItemDto item, LocalDateTime obsTime) {
     RawDataItemDto.Sensor sensor = item.getSensor();
+
+    if (sensor == null) {
+      return null;
+    }
+
     return SensorData.builder()
         .stationId(item.getStationId())
         .obsTime(obsTime)
         .csq(item.getCsq())
         .rainD(item.getRainD())
-        .v1(sensor != null && sensor.getVolt() != null ? sensor.getVolt().getV1() : null)
-        .v2(sensor != null && sensor.getVolt() != null ? sensor.getVolt().getV2() : null)
-        .v3(sensor != null && sensor.getVolt() != null ? sensor.getVolt().getV3() : null)
-        .v4(sensor != null && sensor.getVolt() != null ? sensor.getVolt().getV4() : null)
-        .v5(sensor != null && sensor.getVolt() != null ? sensor.getVolt().getV5() : null)
-        .v6(sensor != null && sensor.getVolt() != null ? sensor.getVolt().getV6() : null)
-        .v7(sensor != null && sensor.getVolt() != null ? sensor.getVolt().getV7() : null)
-        .rh(sensor != null && sensor.getStickTxRh() != null ? sensor.getStickTxRh().getRh() : null)
-        .tx(sensor != null && sensor.getStickTxRh() != null ? sensor.getStickTxRh().getTx() : null)
-        .echo(
-            sensor != null && sensor.getUltrasonicLevel() != null
-                ? sensor.getUltrasonicLevel().getEcho()
-                : null)
-        .speed(
-            sensor != null && sensor.getWaterSpeedAquark() != null
-                ? sensor.getWaterSpeedAquark().getSpeed()
-                : null)
+        .v1(sensor.getVolt().getV1())
+        .v2(sensor.getVolt().getV2())
+        .v3(sensor.getVolt().getV3())
+        .v4(sensor.getVolt().getV4())
+        .v5(sensor.getVolt().getV5())
+        .v6(sensor.getVolt().getV6())
+        .v7(sensor.getVolt().getV7())
+        .rh(sensor.getStickTxRh().getRh())
+        .tx(sensor.getStickTxRh().getTx())
+        .echo(sensor.getUltrasonicLevel().getEcho())
+        .speed(sensor.getWaterSpeedAquark().getSpeed())
         .build();
   }
 
   private TempSensorData parseTempSensorData(RawDataItemDto item, LocalDateTime obsTime) {
     RawDataItemDto.Sensor sensor = item.getSensor();
+
+    if (sensor == null) {
+      return null;
+    }
+
     return TempSensorData.builder()
         .stationId(item.getStationId())
         .obsTime(obsTime)
         .csq(item.getCsq())
         .rainD(item.getRainD())
-        .v1(sensor != null && sensor.getVolt() != null ? sensor.getVolt().getV1() : null)
-        .v2(sensor != null && sensor.getVolt() != null ? sensor.getVolt().getV2() : null)
-        .v3(sensor != null && sensor.getVolt() != null ? sensor.getVolt().getV3() : null)
-        .v4(sensor != null && sensor.getVolt() != null ? sensor.getVolt().getV4() : null)
-        .v5(sensor != null && sensor.getVolt() != null ? sensor.getVolt().getV5() : null)
-        .v6(sensor != null && sensor.getVolt() != null ? sensor.getVolt().getV6() : null)
-        .v7(sensor != null && sensor.getVolt() != null ? sensor.getVolt().getV7() : null)
-        .rh(sensor != null && sensor.getStickTxRh() != null ? sensor.getStickTxRh().getRh() : null)
-        .tx(sensor != null && sensor.getStickTxRh() != null ? sensor.getStickTxRh().getTx() : null)
-        .echo(
-            sensor != null && sensor.getUltrasonicLevel() != null
-                ? sensor.getUltrasonicLevel().getEcho()
-                : null)
-        .speed(
-            sensor != null && sensor.getWaterSpeedAquark() != null
-                ? sensor.getWaterSpeedAquark().getSpeed()
-                : null)
+        .v1(sensor.getVolt().getV1())
+        .v2(sensor.getVolt().getV2())
+        .v3(sensor.getVolt().getV3())
+        .v4(sensor.getVolt().getV4())
+        .v5(sensor.getVolt().getV5())
+        .v6(sensor.getVolt().getV6())
+        .v7(sensor.getVolt().getV7())
+        .rh(sensor.getStickTxRh().getRh())
+        .tx(sensor.getStickTxRh().getTx())
+        .echo(sensor.getUltrasonicLevel().getEcho())
+        .speed(sensor.getWaterSpeedAquark().getSpeed())
         .build();
   }
 

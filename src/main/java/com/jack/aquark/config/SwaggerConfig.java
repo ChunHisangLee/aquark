@@ -10,14 +10,15 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class SwaggerConfig {
+  private static final String API_DOC_TITLE = "Aquark REST API Documentation";
 
   @Bean
   public OpenAPI aquarkOpenAPI() {
     return new OpenAPI()
         .info(
             new Info()
-                .title("Aquark REST API Documentation")
-                .description("Aquark REST API Documentation")
+                .title(API_DOC_TITLE)
+                .description("...")
                 .version("v1.0.0")
                 .contact(
                     new Contact()
@@ -27,7 +28,7 @@ public class SwaggerConfig {
                 .license(new License().name("Apache 2.0").url("https://www.jack.com")))
         .externalDocs(
             new ExternalDocumentation()
-                .description("Aquark REST API Documentation")
+                .description(API_DOC_TITLE)
                 .url("https://www.jack.com/swagger-ui.html"));
   }
 }

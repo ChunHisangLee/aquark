@@ -2,6 +2,8 @@ package com.jack.aquark.controller;
 
 import com.jack.aquark.constant.MessagesConstants;
 import com.jack.aquark.entity.AlarmThreshold;
+import com.jack.aquark.response.ApiResponseDto;
+import com.jack.aquark.response.ErrorResponseDto;
 import com.jack.aquark.response.ResponseDto;
 import com.jack.aquark.service.AlarmThresholdService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +14,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,10 +50,10 @@ public class AlarmThresholdController {
     @ApiResponse(
         responseCode = MessagesConstants.STATUS_404,
         description = "No threshold data found for the given parameters",
-        content = @Content(schema = @Schema(implementation = String.class)))
+        content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
   })
-  @GetMapping
-  public ResponseEntity<List<AlarmThreshold>> getThresholds(
+  @GetMapping("/get")
+  public ResponseEntity<ApiResponseDto<List<AlarmThreshold>>> getThresholds(
       @Parameter(example = "240627", description = "Station ID") @RequestParam(required = false)
           String stationId,
       @Parameter(example = "31", description = "CSQ value") @RequestParam(required = false)
@@ -63,18 +66,34 @@ public class AlarmThresholdController {
 
     if (stationId != null && csq != null && parameter != null) {
       AlarmThreshold threshold = alarmThresholdService.getThreshold(stationId, csq, parameter);
+
       if (threshold == null) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(
+                ApiResponseDto.error(
+                    new ErrorResponseDto(
+                        "/api/alarm/get",
+                        HttpStatus.NOT_FOUND,
+                        "Threshold not found.",
+                        LocalDateTime.now())));
       }
       thresholds = List.of(threshold);
     } else {
       thresholds = alarmThresholdService.getAllThresholds();
+
       if (thresholds == null || thresholds.isEmpty()) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(
+                ApiResponseDto.error(
+                    new ErrorResponseDto(
+                        "/api/alarm/get",
+                        HttpStatus.NOT_FOUND,
+                        "Threshold not found.",
+                        LocalDateTime.now())));
       }
     }
 
-    return ResponseEntity.ok(thresholds);
+    return ResponseEntity.ok(ApiResponseDto.success(thresholds));
   }
 
   @Operation(
@@ -92,18 +111,25 @@ public class AlarmThresholdController {
         content = @Content(schema = @Schema(implementation = String.class)))
   })
   @PostMapping("/update")
-  public ResponseEntity<ResponseDto> updateThreshold(@Valid @RequestBody AlarmThreshold threshold) {
+  public ResponseEntity<ApiResponseDto<ResponseDto>> updateThreshold(
+      @Valid @RequestBody AlarmThreshold threshold) {
     boolean isUpdated = alarmThresholdService.updateThreshold(threshold);
 
     if (isUpdated) {
-      return ResponseEntity.ok(
-          new ResponseDto(MessagesConstants.STATUS_200, "Request processed successfully."));
+      return ResponseEntity.status(HttpStatus.OK)
+          .body(
+              ApiResponseDto.success(
+                  new ResponseDto(
+                      MessagesConstants.STATUS_200, "Request processed successfully.")));
     } else {
       return ResponseEntity.status(HttpStatus.CONFLICT)
           .body(
-              new ResponseDto(
-                  MessagesConstants.STATUS_409,
-                  "Could not update threshold. Possibly a conflict or missing data."));
+              ApiResponseDto.error(
+                  new ErrorResponseDto(
+                      "/api/alarm/update",
+                      HttpStatus.CONFLICT,
+                      "Could not update threshold. Possibly a conflict or missing data.",
+                      LocalDateTime.now())));
     }
   }
 
@@ -119,19 +145,26 @@ public class AlarmThresholdController {
     @ApiResponse(
         responseCode = MessagesConstants.STATUS_409,
         description = "Threshold already exists for the given station, CSQ, and parameter",
-        content = @Content(schema = @Schema(implementation = String.class)))
+        content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
   })
   @PostMapping("/add")
-  public ResponseEntity<?> addThreshold(@Valid @RequestBody AlarmThreshold threshold) {
+  public ResponseEntity<ApiResponseDto<AlarmThreshold>> addThreshold(
+      @Valid @RequestBody AlarmThreshold threshold) {
     boolean exists =
         alarmThresholdService.exists(
             threshold.getStationId(), threshold.getCsq(), threshold.getParameter());
     if (exists) {
       return ResponseEntity.status(HttpStatus.CONFLICT)
-          .body("Alarm threshold already exists for these parameters.");
+          .body(
+              ApiResponseDto.error(
+                  new ErrorResponseDto(
+                      "/api/alarm/add",
+                      HttpStatus.CONFLICT,
+                      "Threshold already exists for the given station, CSQ, and sensor parameter.",
+                      LocalDateTime.now())));
     }
 
     AlarmThreshold created = alarmThresholdService.saveNewThreshold(threshold);
-    return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponseDto.success(created));
   }
 }

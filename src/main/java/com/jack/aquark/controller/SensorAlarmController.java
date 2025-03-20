@@ -2,7 +2,8 @@ package com.jack.aquark.controller;
 
 import com.jack.aquark.constant.MessagesConstants;
 import com.jack.aquark.dto.AlarmCheckResult;
-import com.jack.aquark.response.ResponseDto;
+import com.jack.aquark.response.ApiResponseDto;
+import com.jack.aquark.response.ErrorResponseDto;
 import com.jack.aquark.service.AlarmCheckingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,10 +16,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDateTime;
 
 @Tag(
-    name = "Alarm API",
-    description = "APIs for checking sensor alarms and triggering notifications.")
+        name = "Alarm API",
+        description = "APIs for checking sensor alarms and triggering notifications.")
 @RestController
 @RequestMapping("/api/alarm")
 @AllArgsConstructor
@@ -28,29 +30,35 @@ public class SensorAlarmController {
   private final AlarmCheckingService alarmCheckingService;
 
   @Operation(
-      summary = "Check Sensor Alarms",
-      description =
-          "Checks sensor data over the specified interval (in minutes) and triggers alarms if sensor readings exceed thresholds. Returns detailed alarm check results.")
+          summary = "Check Sensor Alarms",
+          description =
+                  "Checks sensor data over the specified interval (in minutes) and triggers alarms if sensor readings exceed thresholds. Returns detailed alarm check results.")
   @ApiResponses({
-    @ApiResponse(
-        responseCode = MessagesConstants.STATUS_200,
-        description = "Alarm check completed successfully",
-        content = @Content(schema = @Schema(implementation = AlarmCheckResult.class))),
-    @ApiResponse(
-        responseCode = MessagesConstants.STATUS_500,
-        description = "Internal Server Error",
-        content = @Content(schema = @Schema(implementation = String.class)))
+          @ApiResponse(
+                  responseCode = MessagesConstants.STATUS_200,
+                  description = "Alarm check completed successfully",
+                  content = @Content(schema = @Schema(implementation = AlarmCheckResult.class))),
+          @ApiResponse(
+                  responseCode = MessagesConstants.STATUS_500,
+                  description = "Internal Server Error",
+                  content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
   })
   @GetMapping("/check")
-  public ResponseEntity<?> checkSensorAlarms(
-      @RequestParam(name = "intervalMinutes", defaultValue = "60") int intervalMinutes) {
+  public ResponseEntity<ApiResponseDto<AlarmCheckResult>> checkSensorAlarms(
+          @RequestParam(name = "intervalMinutes", defaultValue = "60") int intervalMinutes) {
     try {
       AlarmCheckResult result = alarmCheckingService.checkSensorAlarms(intervalMinutes);
-      return ResponseEntity.status(HttpStatus.OK).body(result);
+      return ResponseEntity.status(HttpStatus.OK)
+              .body(ApiResponseDto.success(result));
     } catch (Exception e) {
       log.error("Error fetching alarms statistics", e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(new ResponseDto(MessagesConstants.STATUS_500, "Error fetching alarms statistics"));
+              .body(ApiResponseDto.error(
+                      new ErrorResponseDto(
+                              "/api/alarm/check",
+                              HttpStatus.INTERNAL_SERVER_ERROR,
+                              "Error fetching alarms statistics",
+                              LocalDateTime.now())));
     }
   }
 }
