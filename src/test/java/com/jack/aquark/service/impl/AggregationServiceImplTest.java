@@ -26,17 +26,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AggregationServiceImplTest {
 
-  @Mock
-  private HourlyAggregationRepository hourlyAggregationRepository;
+  @Mock private HourlyAggregationRepository hourlyAggregationRepository;
 
-  @Mock
-  private DailyAggregationRepository dailyAggregationRepository;
+  @Mock private DailyAggregationRepository dailyAggregationRepository;
 
-  @Mock
-  private TempSensorDataRepository tempSensorDataRepository;
+  @Mock private TempSensorDataRepository tempSensorDataRepository;
 
-  @InjectMocks
-  private AggregationServiceImpl aggregationService;
+  @InjectMocks private AggregationServiceImpl aggregationService;
 
   @Test
   void testAggregateHourlyData_NoData() {
@@ -68,7 +64,7 @@ class AggregationServiceImplTest {
     // When checking for an existing aggregation, return empty to force an insert.
     when(hourlyAggregationRepository.findByStationIdAndObsDateAndObsHourAndCsq(
             anyString(), any(LocalDate.class), anyInt(), anyString()))
-            .thenReturn(Optional.empty());
+        .thenReturn(Optional.empty());
 
     aggregationService.aggregateHourlyData();
 
@@ -97,7 +93,7 @@ class AggregationServiceImplTest {
     when(hourlyAggregationRepository.findAll()).thenReturn(Arrays.asList(ha1, ha2));
     when(dailyAggregationRepository.findByStationIdAndObsDateAndCsq(
             anyString(), any(LocalDate.class), anyString()))
-            .thenReturn(Optional.empty());
+        .thenReturn(Optional.empty());
 
     aggregationService.aggregateDailyData();
 

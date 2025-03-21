@@ -59,14 +59,11 @@ public class SensorDataServiceImpl implements SensorDataService {
         log.warn("No raw sensor data found in the response from URL: {}", apiUrl);
         return;
       }
-
       // Iterate raw items
       for (RawDataItemDto item : wrapper.getRaw()) {
         processRawItem(item);
       }
-
       log.info("Completed fetching & storing raw sensor data from {}", apiUrl);
-
     } catch (Exception e) {
       log.error("Error fetching/saving sensor data from URL: {}", apiUrl, e);
     }
@@ -77,14 +74,12 @@ public class SensorDataServiceImpl implements SensorDataService {
       LocalDateTime obsTime = LocalDateTime.parse(item.getObsTime(), FORMATTER);
       String stationId = item.getStationId();
       String csq = item.getCsq();
-
       // Check duplicates
       if (sensorDataRepository.existsByStationIdAndObsTimeAndCsq(stationId, obsTime, csq)) {
         log.info(
             "Duplicate data. Skipping stationId={}, obsTime={}, csq={}", stationId, obsTime, csq);
         return;
       }
-
       // Create & save main sensor data
       SensorData data = parseSensorData(item, obsTime);
       if (data == null) {
@@ -92,7 +87,6 @@ public class SensorDataServiceImpl implements SensorDataService {
         return;
       }
       sensorDataRepository.save(data);
-
       // Create & save temp sensor data (for aggregator usage)
       TempSensorData tempData = parseTempSensorData(item, obsTime);
       if (tempData == null) {
@@ -100,7 +94,6 @@ public class SensorDataServiceImpl implements SensorDataService {
         return;
       }
       tempSensorDataRepository.save(tempData);
-
     } catch (Exception e) {
       log.error("Error processing raw item: {}", item, e);
     }
@@ -109,12 +102,10 @@ public class SensorDataServiceImpl implements SensorDataService {
   RawDataWrapperDto fetchRawDataFromUrl(String url) {
     RestTemplate restTemplate = new RestTemplate();
     ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-
     if (!response.getStatusCode().is2xxSuccessful()) {
       log.error("Failed to fetch data from {}, HTTP status: {}", url, response.getStatusCode());
       throw new DataFetchException("Failed fetching data from " + url);
     }
-
     try {
       return objectMapper.readValue(response.getBody(), RawDataWrapperDto.class);
     } catch (Exception e) {
@@ -123,62 +114,54 @@ public class SensorDataServiceImpl implements SensorDataService {
     }
   }
 
+  // Extract common sensor value reading into a helper method
+  private SensorValues extractSensorValues(RawDataItemDto.Sensor sensor) {
+    SensorValues values = new SensorValues();
+
+    if (sensor.getVolt() != null) {
+      values.v1 = sensor.getVolt().getV1();
+      values.v2 = sensor.getVolt().getV2();
+      values.v3 = sensor.getVolt().getV3();
+      values.v4 = sensor.getVolt().getV4();
+      values.v5 = sensor.getVolt().getV5();
+      values.v6 = sensor.getVolt().getV6();
+      values.v7 = sensor.getVolt().getV7();
+    }
+    if (sensor.getStickTxRh() != null) {
+      values.rh = sensor.getStickTxRh().getRh();
+      values.tx = sensor.getStickTxRh().getTx();
+    }
+    if (sensor.getUltrasonicLevel() != null) {
+      values.echo = sensor.getUltrasonicLevel().getEcho();
+    }
+    if (sensor.getWaterSpeedAquark() != null) {
+      values.speed = sensor.getWaterSpeedAquark().getSpeed();
+    }
+    return values;
+  }
+
   private SensorData parseSensorData(RawDataItemDto item, LocalDateTime obsTime) {
     RawDataItemDto.Sensor sensor = item.getSensor();
     if (sensor == null) {
       return null;
     }
-
-    BigDecimal v1 = null;
-    BigDecimal v2 = null;
-    BigDecimal v3 = null;
-    BigDecimal v4 = null;
-    BigDecimal v5 = null;
-    BigDecimal v6 = null;
-    BigDecimal v7 = null;
-    if (sensor.getVolt() != null) {
-      v1 = sensor.getVolt().getV1();
-      v2 = sensor.getVolt().getV2();
-      v3 = sensor.getVolt().getV3();
-      v4 = sensor.getVolt().getV4();
-      v5 = sensor.getVolt().getV5();
-      v6 = sensor.getVolt().getV6();
-      v7 = sensor.getVolt().getV7();
-    }
-
-    BigDecimal rh = null;
-    BigDecimal tx = null;
-    if (sensor.getStickTxRh() != null) {
-      rh = sensor.getStickTxRh().getRh();
-      tx = sensor.getStickTxRh().getTx();
-    }
-
-    BigDecimal echo = null;
-    if (sensor.getUltrasonicLevel() != null) {
-      echo = sensor.getUltrasonicLevel().getEcho();
-    }
-
-    BigDecimal speed = null;
-    if (sensor.getWaterSpeedAquark() != null) {
-      speed = sensor.getWaterSpeedAquark().getSpeed();
-    }
-
+    SensorValues values = extractSensorValues(sensor);
     return SensorData.builder()
         .stationId(item.getStationId())
         .obsTime(obsTime)
         .csq(item.getCsq())
         .rainD(item.getRainD())
-        .v1(v1)
-        .v2(v2)
-        .v3(v3)
-        .v4(v4)
-        .v5(v5)
-        .v6(v6)
-        .v7(v7)
-        .rh(rh)
-        .tx(tx)
-        .echo(echo)
-        .speed(speed)
+        .v1(values.v1)
+        .v2(values.v2)
+        .v3(values.v3)
+        .v4(values.v4)
+        .v5(values.v5)
+        .v6(values.v6)
+        .v7(values.v7)
+        .rh(values.rh)
+        .tx(values.tx)
+        .echo(values.echo)
+        .speed(values.speed)
         .build();
   }
 
@@ -187,64 +170,44 @@ public class SensorDataServiceImpl implements SensorDataService {
     if (sensor == null) {
       return null;
     }
-
-    BigDecimal v1 = null;
-    BigDecimal v2 = null;
-    BigDecimal v3 = null;
-    BigDecimal v4 = null;
-    BigDecimal v5 = null;
-    BigDecimal v6 = null;
-    BigDecimal v7 = null;
-    if (sensor.getVolt() != null) {
-      v1 = sensor.getVolt().getV1();
-      v2 = sensor.getVolt().getV2();
-      v3 = sensor.getVolt().getV3();
-      v4 = sensor.getVolt().getV4();
-      v5 = sensor.getVolt().getV5();
-      v6 = sensor.getVolt().getV6();
-      v7 = sensor.getVolt().getV7();
-    }
-
-    BigDecimal rh = null;
-    BigDecimal tx = null;
-    if (sensor.getStickTxRh() != null) {
-      rh = sensor.getStickTxRh().getRh();
-      tx = sensor.getStickTxRh().getTx();
-    }
-
-    BigDecimal echo = null;
-    if (sensor.getUltrasonicLevel() != null) {
-      echo = sensor.getUltrasonicLevel().getEcho();
-    }
-
-    BigDecimal speed = null;
-    if (sensor.getWaterSpeedAquark() != null) {
-      speed = sensor.getWaterSpeedAquark().getSpeed();
-    }
-
+    SensorValues values = extractSensorValues(sensor);
     return TempSensorData.builder()
         .stationId(item.getStationId())
         .obsTime(obsTime)
         .csq(item.getCsq())
         .rainD(item.getRainD())
-        .v1(v1)
-        .v2(v2)
-        .v3(v3)
-        .v4(v4)
-        .v5(v5)
-        .v6(v6)
-        .v7(v7)
-        .rh(rh)
-        .tx(tx)
-        .echo(echo)
-        .speed(speed)
+        .v1(values.v1)
+        .v2(values.v2)
+        .v3(values.v3)
+        .v4(values.v4)
+        .v5(values.v5)
+        .v6(values.v6)
+        .v7(values.v7)
+        .rh(values.rh)
+        .tx(values.tx)
+        .echo(values.echo)
+        .speed(values.speed)
         .build();
+  }
+
+  // Helper class to hold sensor values
+  private static class SensorValues {
+    BigDecimal v1;
+    BigDecimal v2;
+    BigDecimal v3;
+    BigDecimal v4;
+    BigDecimal v5;
+    BigDecimal v6;
+    BigDecimal v7;
+    BigDecimal rh;
+    BigDecimal tx;
+    BigDecimal echo;
+    BigDecimal speed;
   }
 
   // ----------------------------------------------------------------------------
   // Reading from the aggregator tables
   // ----------------------------------------------------------------------------
-
   @Override
   @Cacheable(
       value = "hourlyAggregation",
@@ -285,7 +248,6 @@ public class SensorDataServiceImpl implements SensorDataService {
     LocalTime time = dateTime.toLocalTime();
     LocalTime startPeak = LocalTime.of(7, 30);
     LocalTime endPeak = LocalTime.of(17, 30);
-
     return switch (day) {
       case MONDAY, TUESDAY, WEDNESDAY -> (!time.isBefore(startPeak) && time.isBefore(endPeak));
       case THURSDAY, FRIDAY -> true;

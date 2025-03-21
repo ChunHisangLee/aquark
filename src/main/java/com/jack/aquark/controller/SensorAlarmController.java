@@ -55,7 +55,7 @@ public class SensorAlarmController {
               ApiResponseDto.error(
                   new ErrorResponseDto(
                       "/api/alarm/check",
-                          MessagesConstants.STATUS_500,
+                      MessagesConstants.STATUS_500,
                       "Error fetching alarms statistics",
                       LocalDateTime.now())));
     }

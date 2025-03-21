@@ -15,8 +15,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+
 import java.time.LocalDateTime;
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
@@ -32,6 +34,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @Validated
 public class AlarmThresholdController {
+  private static final String ALARM_GET_URL = "/api/alarm/get";
 
   private final AlarmThresholdService alarmThresholdService;
 
@@ -86,7 +89,7 @@ public class AlarmThresholdController {
               .body(
                   ApiResponseDto.error(
                       new ErrorResponseDto(
-                          "/api/alarm/get",
+                          ALARM_GET_URL,
                           MessagesConstants.STATUS_404,
                           "Threshold not found.",
                           LocalDateTime.now())));
@@ -99,7 +102,7 @@ public class AlarmThresholdController {
           .body(
               ApiResponseDto.error(
                   new ErrorResponseDto(
-                      "/api/alarm/get",
+                      ALARM_GET_URL,
                       MessagesConstants.STATUS_404,
                       "Threshold not found.",
                       LocalDateTime.now())));
@@ -109,7 +112,7 @@ public class AlarmThresholdController {
           .body(
               ApiResponseDto.error(
                   new ErrorResponseDto(
-                      "/api/alarm/get",
+                      ALARM_GET_URL,
                       MessagesConstants.STATUS_500,
                       "Internal server error.",
                       LocalDateTime.now())));
