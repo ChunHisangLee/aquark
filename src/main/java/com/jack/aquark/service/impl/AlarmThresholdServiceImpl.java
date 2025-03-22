@@ -9,6 +9,7 @@ import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -73,6 +74,9 @@ public class AlarmThresholdServiceImpl implements AlarmThresholdService {
   }
 
   @Override
+  @CachePut(
+      value = "thresholds",
+      key = "#result.stationId + '_' + #result.csq + '_' + #result.parameter")
   public AlarmThreshold saveNewThreshold(AlarmThreshold threshold) {
     return alarmThresholdRepository.save(threshold);
   }
