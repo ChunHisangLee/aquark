@@ -49,4 +49,4 @@ springdoc:
 
 
 scheduling:
-  cron: "0 0/2 * * * ?"
+  cron: "33 9 * * * ?"

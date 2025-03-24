@@ -32,6 +32,8 @@ public class RedisConfig {
   @Value("${spring.data.redis.password:}")
   private String redisPassword;
 
+  private static final int DEFAULT_EXPIRATION_MINUTES = 60;
+
   @Bean
   public RedisConnectionFactory redisConnectionFactory() {
     log.info(
@@ -64,7 +66,7 @@ public class RedisConfig {
 
     RedisCacheConfiguration config =
         RedisCacheConfiguration.defaultCacheConfig()
-            .entryTtl(Duration.ofMinutes(60)) // 60-minute TTL
+            .entryTtl(Duration.ofMinutes(DEFAULT_EXPIRATION_MINUTES))
             .disableCachingNullValues()
             .serializeValuesWith(
                 RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer));
