@@ -7,8 +7,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jack.aquark.constant.MessagesConstants;
 import com.jack.aquark.entity.AlarmThreshold;
+import com.jack.aquark.exception.ThresholdNotFoundException;
 import com.jack.aquark.service.AlarmThresholdService;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
@@ -45,17 +45,20 @@ class AlarmThresholdControllerTest {
                 .param("csq", "31")
                 .param("parameter", "v1"))
         .andExpect(status().isOk())
-        // The controller wraps the list inside a "data" field.
         .andExpect(jsonPath("$.data[0].stationId").value("240627"))
         .andExpect(jsonPath("$.data[0].csq").value("31"))
         .andExpect(jsonPath("$.data[0].parameter").value("v1"))
-        // Expect numeric value 100.0 (JSON numbers are not formatted as strings)
+        // 100.0 會以數值型態回傳
         .andExpect(jsonPath("$.data[0].thresholdValue").value(100.0));
   }
 
   @Test
   void testGetThreshold_NotFound() throws Exception {
-    when(alarmThresholdService.getThreshold("240627", "31", "v1")).thenReturn(null);
+    // 模擬服務層拋出 ThresholdNotFoundException
+    when(alarmThresholdService.getThreshold("240627", "31", "v1"))
+        .thenThrow(
+            new ThresholdNotFoundException(
+                "Threshold not found for station 240627, csq 31, parameter v1"));
 
     mockMvc
         .perform(
@@ -74,7 +77,8 @@ class AlarmThresholdControllerTest {
     threshold.setParameter("v1");
     threshold.setThresholdValue(new BigDecimal("150.00"));
 
-    when(alarmThresholdService.updateThreshold(any(AlarmThreshold.class))).thenReturn(true);
+    // 模擬 service 回傳更新後的 threshold 物件
+    when(alarmThresholdService.updateThreshold(any(AlarmThreshold.class))).thenReturn(threshold);
 
     mockMvc
         .perform(
@@ -82,9 +86,11 @@ class AlarmThresholdControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(threshold)))
         .andExpect(status().isOk())
-        // The success response is wrapped under "data".
-        .andExpect(jsonPath("$.data.statusCode").value(MessagesConstants.STATUS_200))
-        .andExpect(jsonPath("$.data.statusMsg").value("Request processed successfully."));
+        // 驗證回應中 data 欄位的屬性
+        .andExpect(jsonPath("$.data.stationId").value("240627"))
+        .andExpect(jsonPath("$.data.csq").value("31"))
+        .andExpect(jsonPath("$.data.parameter").value("v1"))
+        .andExpect(jsonPath("$.data.thresholdValue").value(150.00));
   }
 
   @Test
@@ -95,18 +101,15 @@ class AlarmThresholdControllerTest {
     threshold.setParameter("v1");
     threshold.setThresholdValue(new BigDecimal("150.00"));
 
-    when(alarmThresholdService.updateThreshold(any(AlarmThreshold.class))).thenReturn(false);
+    // 模擬 service 拋出例外，表示更新失敗
+    when(alarmThresholdService.updateThreshold(any(AlarmThreshold.class)))
+        .thenThrow(new RuntimeException("Update failed"));
 
     mockMvc
         .perform(
             post("/api/alarm/update")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(threshold)))
-        .andExpect(status().isConflict())
-        // Since it's an error response, check under the "error" field instead of "data".
-        .andExpect(jsonPath("$.error.errorCode").value(MessagesConstants.STATUS_409))
-        .andExpect(
-            jsonPath("$.error.errorMessage")
-                .value("Could not update threshold. Possibly a conflict or missing data."));
+        .andExpect(status().isInternalServerError());
   }
 }

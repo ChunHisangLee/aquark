@@ -2,10 +2,8 @@ package com.jack.aquark.controller;
 
 import com.jack.aquark.constant.MessagesConstants;
 import com.jack.aquark.entity.AlarmThreshold;
-import com.jack.aquark.exception.ThresholdNotFoundException;
 import com.jack.aquark.response.ApiResponseDto;
 import com.jack.aquark.response.ErrorResponseDto;
-import com.jack.aquark.response.ResponseDto;
 import com.jack.aquark.service.AlarmThresholdService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,10 +13,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-
 import java.time.LocalDateTime;
 import java.util.List;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
@@ -34,8 +30,6 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @Validated
 public class AlarmThresholdController {
-  private static final String ALARM_GET_URL = "/api/alarm/get";
-
   private final AlarmThresholdService alarmThresholdService;
 
   @Operation(
@@ -66,56 +60,12 @@ public class AlarmThresholdController {
           @RequestParam(required = false)
           String parameter) {
 
-    try {
-      // If all three parameters are provided, retrieve one threshold
-      if (stationId != null && csq != null && parameter != null) {
-        AlarmThreshold threshold = alarmThresholdService.getThreshold(stationId, csq, parameter);
-        // Defensive check in case the service unexpectedly returns null
-        if (threshold == null) {
-          throw new ThresholdNotFoundException(
-              "Threshold not found for station "
-                  + stationId
-                  + ", csq "
-                  + csq
-                  + ", parameter "
-                  + parameter);
-        }
-        return ResponseEntity.ok(ApiResponseDto.success(List.of(threshold)));
-      } else {
-        // Otherwise, return all thresholds
-        List<AlarmThreshold> thresholds = alarmThresholdService.getAllThresholds();
-        if (thresholds == null || thresholds.isEmpty()) {
-          return ResponseEntity.status(HttpStatus.NOT_FOUND)
-              .body(
-                  ApiResponseDto.error(
-                      new ErrorResponseDto(
-                          ALARM_GET_URL,
-                          MessagesConstants.STATUS_404,
-                          "Threshold not found.",
-                          LocalDateTime.now())));
-        }
-        return ResponseEntity.ok(ApiResponseDto.success(thresholds));
-      }
-    } catch (ThresholdNotFoundException e) {
-      log.error("Threshold not found", e);
-      return ResponseEntity.status(HttpStatus.NOT_FOUND)
-          .body(
-              ApiResponseDto.error(
-                  new ErrorResponseDto(
-                      ALARM_GET_URL,
-                      MessagesConstants.STATUS_404,
-                      "Threshold not found.",
-                      LocalDateTime.now())));
-    } catch (Exception e) {
-      log.error("Unexpected error retrieving threshold", e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(
-              ApiResponseDto.error(
-                  new ErrorResponseDto(
-                      ALARM_GET_URL,
-                      MessagesConstants.STATUS_500,
-                      "Internal server error.",
-                      LocalDateTime.now())));
+    if (stationId != null && csq != null && parameter != null) {
+      AlarmThreshold threshold = alarmThresholdService.getThreshold(stationId, csq, parameter);
+      return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(List.of(threshold)));
+    } else {
+      List<AlarmThreshold> thresholds = alarmThresholdService.getAllThresholds();
+      return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(thresholds));
     }
   }
 
@@ -134,26 +84,11 @@ public class AlarmThresholdController {
             content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
       })
   @PostMapping("/update")
-  public ResponseEntity<ApiResponseDto<ResponseDto>> updateThreshold(
+  public ResponseEntity<ApiResponseDto<AlarmThreshold>> updateThreshold(
       @Valid @RequestBody AlarmThreshold threshold) {
 
-    boolean isUpdated = alarmThresholdService.updateThreshold(threshold);
-    if (isUpdated) {
-      return ResponseEntity.status(HttpStatus.OK)
-          .body(
-              ApiResponseDto.success(
-                  new ResponseDto(
-                      MessagesConstants.STATUS_200, "Request processed successfully.")));
-    } else {
-      return ResponseEntity.status(HttpStatus.CONFLICT)
-          .body(
-              ApiResponseDto.error(
-                  new ErrorResponseDto(
-                      "/api/alarm/update",
-                      MessagesConstants.STATUS_409,
-                      "Could not update threshold. Possibly a conflict or missing data.",
-                      LocalDateTime.now())));
-    }
+    AlarmThreshold updated = alarmThresholdService.updateThreshold(threshold);
+    return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(updated));
   }
 
   @Operation(
@@ -174,20 +109,17 @@ public class AlarmThresholdController {
   public ResponseEntity<ApiResponseDto<AlarmThreshold>> addThreshold(
       @Valid @RequestBody AlarmThreshold threshold) {
 
-    boolean exists =
-        alarmThresholdService.exists(
-            threshold.getStationId(), threshold.getCsq(), threshold.getParameter());
-    if (exists) {
+    if (alarmThresholdService.exists(
+        threshold.getStationId(), threshold.getCsq(), threshold.getParameter())) {
       return ResponseEntity.status(HttpStatus.CONFLICT)
           .body(
               ApiResponseDto.error(
                   new ErrorResponseDto(
                       "/api/alarm/add",
-                      MessagesConstants.STATUS_409,
+                      HttpStatus.CONFLICT,
                       "Threshold already exists for the given station, CSQ, and sensor parameter.",
                       LocalDateTime.now())));
     }
-
     AlarmThreshold created = alarmThresholdService.saveNewThreshold(threshold);
     return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponseDto.success(created));
   }

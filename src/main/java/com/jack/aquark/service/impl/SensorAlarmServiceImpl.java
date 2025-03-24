@@ -6,7 +6,7 @@ import com.jack.aquark.dto.AlarmEvent;
 import com.jack.aquark.entity.SensorData;
 import com.jack.aquark.exception.ThresholdNotFoundException;
 import com.jack.aquark.service.AggregationService;
-import com.jack.aquark.service.AlarmCheckingService;
+import com.jack.aquark.service.SensorAlarmService;
 import com.jack.aquark.service.AlarmThresholdService;
 import com.jack.aquark.service.KafkaProducerService;
 import java.math.BigDecimal;
@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 @Service
 @AllArgsConstructor
 @Slf4j
-public class AlarmCheckingServiceImpl implements AlarmCheckingService {
+public class SensorAlarmServiceImpl implements SensorAlarmService {
 
   private static final ZoneId TAIPEI_ZONE = ZoneId.of("Asia/Taipei");
 
@@ -72,17 +72,15 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
 
     for (SensorData data : sensorDataList) {
       BigDecimal value = getSensorValue(data, parameter);
+
       if (value == null) {
-        // No sensor reading for this parameter, skip
         continue;
       }
 
       try {
-        // Try to fetch threshold
         var threshold =
             alarmThresholdService.getThreshold(data.getStationId(), data.getCsq(), parameter);
 
-        // If the sensor value exceeds the threshold, create an alarm
         if (value.compareTo(threshold.getThresholdValue()) > 0) {
           String msg =
               String.format(
@@ -96,7 +94,6 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
 
           log.warn("Alarm sent: {}", msg);
 
-          // Add an AlarmDetail to the result
           AlarmDetail detail =
               new AlarmDetail(
                   data.getStationId(),
@@ -122,7 +119,6 @@ public class AlarmCheckingServiceImpl implements AlarmCheckingService {
         }
 
       } catch (ThresholdNotFoundException ex) {
-        // Specifically handle missing threshold
         log.debug(
             "No threshold found for station={}, parameter={}, csq={}. Skipping alarm check.",
             data.getStationId(),

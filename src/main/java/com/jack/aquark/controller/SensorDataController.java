@@ -65,20 +65,8 @@ public class SensorDataController {
           @RequestParam
           @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime end) {
-    try {
-      List<SensorData> data = aggregationService.getSensorDataByTimeRange(start, end);
-      return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(data));
-    } catch (Exception e) {
-      log.error("Error searching sensor data for range {} - {}", start, end, e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(
-              ApiResponseDto.error(
-                  new ErrorResponseDto(
-                      "/api/sensor/search",
-                      MessagesConstants.STATUS_500,
-                      "Error searching sensor data",
-                      LocalDateTime.now())));
-    }
+    List<SensorData> data = aggregationService.getSensorDataByTimeRange(start, end);
+    return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(data));
   }
 
   @Operation(
@@ -109,20 +97,8 @@ public class SensorDataController {
           @RequestParam
           @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime end) {
-    try {
-      List<HourlyAggregation> stats = sensorDataService.getHourlyAverage(start, end);
-      return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(stats));
-    } catch (Exception e) {
-      log.error("Error fetching hourly statistics for range {} - {}", start, end, e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(
-              ApiResponseDto.error(
-                  new ErrorResponseDto(
-                      "/api/sensor/statistics/hourly",
-                      MessagesConstants.STATUS_500,
-                      "Error fetching hourly statistics",
-                      LocalDateTime.now())));
-    }
+    List<HourlyAggregation> stats = sensorDataService.getHourlyAverage(start, end);
+    return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(stats));
   }
 
   @Operation(
@@ -153,20 +129,8 @@ public class SensorDataController {
           @RequestParam
           @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime end) {
-    try {
-      List<DailyAggregation> stats = sensorDataService.getDailyAverage(start, end);
-      return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(stats));
-    } catch (Exception e) {
-      log.error("Error fetching daily statistics for range {} - {}", start, end, e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(
-              ApiResponseDto.error(
-                  new ErrorResponseDto(
-                      "/api/sensor/statistics/daily",
-                      MessagesConstants.STATUS_500,
-                      "Error fetching daily statistics",
-                      LocalDateTime.now())));
-    }
+    List<DailyAggregation> stats = sensorDataService.getDailyAverage(start, end);
+    return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(stats));
   }
 
   @Operation(
@@ -197,20 +161,8 @@ public class SensorDataController {
           @RequestParam
           @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime end) {
-    try {
-      List<SensorData> result = sensorDataService.getPeakTimeData(start, end);
-      return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(result));
-    } catch (Exception e) {
-      log.error("Error fetching peak time data for range {} - {}", start, end, e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(
-              ApiResponseDto.error(
-                  new ErrorResponseDto(
-                      "/api/sensor/peak",
-                      MessagesConstants.STATUS_500,
-                      "Error fetching peak time data",
-                      LocalDateTime.now())));
-    }
+    List<SensorData> result = sensorDataService.getPeakTimeData(start, end);
+    return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(result));
   }
 
   @Operation(
@@ -241,19 +193,7 @@ public class SensorDataController {
           @RequestParam
           @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime end) {
-    try {
-      List<SensorData> result = sensorDataService.getOffPeakTimeData(start, end);
-      return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(result));
-    } catch (Exception e) {
-      log.error("Error fetching off-peak data for range {} - {}", start, end, e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(
-              ApiResponseDto.error(
-                  new ErrorResponseDto(
-                      "/api/sensor/off-peak",
-                      MessagesConstants.STATUS_500,
-                      "Error fetching off-peak data",
-                      LocalDateTime.now())));
-    }
+    List<SensorData> result = sensorDataService.getOffPeakTimeData(start, end);
+    return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(result));
   }
 }

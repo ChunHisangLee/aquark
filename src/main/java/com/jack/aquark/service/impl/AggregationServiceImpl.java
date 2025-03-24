@@ -27,8 +27,7 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 @Slf4j
 public class AggregationServiceImpl implements AggregationService {
-
-  // MAPPINGS FOR HOURLY
+  // Mappings for hourly aggregation
   private static final List<HourlySensorMapping> HOURLY_FIELDS =
       List.of(
           new HourlySensorMapping(
@@ -79,7 +78,8 @@ public class AggregationServiceImpl implements AggregationService {
               TempSensorData::getSpeed,
               HourlyAggregation::setSpeedSumValue,
               HourlyAggregation::setSpeedAvgValue));
-  // MAPPINGS FOR DAILY
+
+  // Mappings for daily aggregation
   private static final List<DailySensorMapping> DAILY_FIELDS =
       List.of(
           new DailySensorMapping(
@@ -142,6 +142,7 @@ public class AggregationServiceImpl implements AggregationService {
               HourlyAggregation::getSpeedAvgValue,
               DailyAggregation::setSpeedSumValue,
               DailyAggregation::setSpeedAvgValue));
+
   private final HourlyAggregationRepository hourlyAggregationRepository;
   private final DailyAggregationRepository dailyAggregationRepository;
   private final TempSensorDataRepository tempSensorDataRepository;
@@ -151,6 +152,7 @@ public class AggregationServiceImpl implements AggregationService {
   @Transactional
   public void aggregateHourlyData() {
     List<TempSensorData> tempData = tempSensorDataRepository.findAll();
+
     if (tempData.isEmpty()) {
       log.info("No temporary sensor data available for hourly aggregation.");
       return;
@@ -161,13 +163,14 @@ public class AggregationServiceImpl implements AggregationService {
         tempData.stream()
             .collect(
                 Collectors.groupingBy(
-                    tsd -> {
-                      String station = tsd.getStationId();
-                      LocalDate date = tsd.getObsTime().toLocalDate();
-                      int hour = tsd.getObsTime().getHour();
-                      String csq = tsd.getCsq();
-                      return station + "|" + date + "|" + hour + "|" + csq;
-                    }));
+                    tsd ->
+                        tsd.getStationId()
+                            + "|"
+                            + tsd.getObsTime().toLocalDate()
+                            + "|"
+                            + tsd.getObsTime().getHour()
+                            + "|"
+                            + tsd.getCsq()));
 
     for (var entry : grouped.entrySet()) {
       String key = entry.getKey();
@@ -187,23 +190,21 @@ public class AggregationServiceImpl implements AggregationService {
       agg.setObsHour(obsHour);
       agg.setCsq(csq);
 
-      // Loop over each sensor mapping
+      // Process each sensor mapping for sum and average
       for (HourlySensorMapping map : HOURLY_FIELDS) {
-        // sum
         BigDecimal sum =
             groupRecords.stream()
                 .map(map.rawGetter())
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // average
         BigDecimal avg = BigDecimal.ZERO;
-        if (sum.compareTo(BigDecimal.ZERO) != 0) {
-          long count = groupRecords.stream().map(map.rawGetter()).filter(Objects::nonNull).count();
+        long count = groupRecords.stream().map(map.rawGetter()).filter(Objects::nonNull).count();
+
+        if (count > 0) {
           avg = sum.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP);
         }
 
-        // set sum & avg on aggregator
         map.sumSetter().accept(agg, sum);
         map.avgSetter().accept(agg, avg);
       }
@@ -215,9 +216,6 @@ public class AggregationServiceImpl implements AggregationService {
     log.info("Hourly aggregation complete. {} grouped sets processed.", grouped.size());
   }
 
-  /**
-   * Insert or update one HourlyAggregation row, identified by (stationId, obsDate, obsHour, csq).
-   */
   public void saveOrUpdateHourlyAggregation(HourlyAggregation aggregation) {
     Optional<HourlyAggregation> optExisting =
         hourlyAggregationRepository.findByStationIdAndObsDateAndObsHourAndCsq(
@@ -228,7 +226,7 @@ public class AggregationServiceImpl implements AggregationService {
 
     if (optExisting.isPresent()) {
       HourlyAggregation existing = optExisting.get();
-      // copy over all sensor fields
+      // Copy sensor fields
       existing.setV1SumValue(aggregation.getV1SumValue());
       existing.setV1AvgValue(aggregation.getV1AvgValue());
       existing.setV2SumValue(aggregation.getV2SumValue());
@@ -253,7 +251,6 @@ public class AggregationServiceImpl implements AggregationService {
       existing.setRainDAvgValue(aggregation.getRainDAvgValue());
       existing.setSpeedSumValue(aggregation.getSpeedSumValue());
       existing.setSpeedAvgValue(aggregation.getSpeedAvgValue());
-
       hourlyAggregationRepository.save(existing);
       log.debug(
           "Updated existing HourlyAggregation row for station={}, date={}, hour={}, csq={}",
@@ -262,10 +259,9 @@ public class AggregationServiceImpl implements AggregationService {
           existing.getObsHour(),
           existing.getCsq());
     } else {
-      // new row
       hourlyAggregationRepository.save(aggregation);
       log.debug(
-          "Inserted new HourlyAggregation row for station={}, date={}, hour={}, csq={}",
+          "Inserted new HourlyAggregation for station={}, date={}, hour={}, csq={}",
           aggregation.getStationId(),
           aggregation.getObsDate(),
           aggregation.getObsHour(),
@@ -273,12 +269,11 @@ public class AggregationServiceImpl implements AggregationService {
     }
   }
 
-  // -------------------------------------------------------------------------
-
   @Override
   @Transactional
   public void aggregateDailyData() {
     List<HourlyAggregation> allHourly = hourlyAggregationRepository.findAll();
+
     if (allHourly.isEmpty()) {
       log.warn("No hourly aggregation records found, skipping daily aggregation.");
       return;
@@ -289,23 +284,14 @@ public class AggregationServiceImpl implements AggregationService {
         allHourly.stream()
             .collect(
                 Collectors.groupingBy(
-                    ha -> {
-                      String station = ha.getStationId();
-                      LocalDate date = ha.getObsDate();
-                      String csq = ha.getCsq();
-                      return station + "|" + date + "|" + csq;
-                    }));
+                    ha -> ha.getStationId() + "|" + ha.getObsDate() + "|" + ha.getCsq()));
 
     for (var entry : grouped.entrySet()) {
-      String key = entry.getKey();
-      List<HourlyAggregation> group = entry.getValue();
-
-      String[] parts = key.split("\\|");
+      String[] parts = entry.getKey().split("\\|");
       String stationId = parts[0];
       LocalDate obsDate = LocalDate.parse(parts[1]);
       String csq = parts[2];
 
-      // Either update existing or create new daily row
       DailyAggregation dailyAgg =
           dailyAggregationRepository
               .findByStationIdAndObsDateAndCsq(stationId, obsDate, csq)
@@ -318,17 +304,15 @@ public class AggregationServiceImpl implements AggregationService {
                     return d;
                   });
 
-      // Loop over the daily fields to sum & average
       for (DailySensorMapping map : DAILY_FIELDS) {
         BigDecimal sumVal =
-            group.stream()
+            entry.getValue().stream()
                 .map(map.hourSumGetter())
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // unweighted average of the hourly "avg" fields
         List<BigDecimal> avgVals =
-            group.stream().map(map.hourAvgGetter()).filter(Objects::nonNull).toList();
+            entry.getValue().stream().map(map.hourAvgGetter()).filter(Objects::nonNull).toList();
 
         BigDecimal avgVal = BigDecimal.ZERO;
         if (!avgVals.isEmpty()) {
@@ -336,7 +320,6 @@ public class AggregationServiceImpl implements AggregationService {
           avgVal = sumOfAvg.divide(BigDecimal.valueOf(avgVals.size()), 2, RoundingMode.HALF_UP);
         }
 
-        // set them
         map.daySumSetter().accept(dailyAgg, sumVal);
         map.dayAvgSetter().accept(dailyAgg, avgVal);
       }
@@ -345,8 +328,7 @@ public class AggregationServiceImpl implements AggregationService {
       log.debug(
           "Upserted DailyAggregation for station={}, date={}, csq={}", stationId, obsDate, csq);
     }
-
-    log.info("Daily aggregation complete. Processed {} day-group(s).", grouped.size());
+    log.info("Daily aggregation complete. Processed {} grouped day-sets.", grouped.size());
   }
 
   @Override

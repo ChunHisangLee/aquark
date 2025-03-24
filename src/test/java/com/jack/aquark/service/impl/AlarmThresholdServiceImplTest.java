@@ -38,7 +38,6 @@ class AlarmThresholdServiceImplTest {
 
   @Test
   void testGetThreshold_Found() {
-    // Given the repository returns the threshold
     when(alarmThresholdRepository.findByStationIdAndCsqAndParameter("240709", "31", "v1"))
         .thenReturn(Optional.of(threshold));
 
@@ -60,25 +59,28 @@ class AlarmThresholdServiceImplTest {
   }
 
   @Test
-  void testUpdateThreshold() {
-    // Given the repository returns the existing threshold
+  void testUpdateThreshold_Success() {
+    // Given repository returns existing threshold
     when(alarmThresholdRepository.findByStationIdAndCsqAndParameter("240709", "31", "v1"))
         .thenReturn(Optional.of(threshold));
-    // And when saving, return the updated threshold
+    // And saving returns the updated object
     when(alarmThresholdRepository.save(any(AlarmThreshold.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
-    // Create an updated threshold object with a new threshold value
+    // Create updated threshold object with new value
     AlarmThreshold updatedThreshold = new AlarmThreshold();
     updatedThreshold.setStationId("240709");
     updatedThreshold.setCsq("31");
     updatedThreshold.setParameter("v1");
     updatedThreshold.setThresholdValue(new BigDecimal("200.0"));
 
-    boolean result = alarmThresholdService.updateThreshold(updatedThreshold);
-    assertTrue(result, "Update should return true");
-    // Verify that the update changes the threshold value to 200.0
-    assertEquals(new BigDecimal("200.0"), threshold.getThresholdValue());
+    // Call updateThreshold, which now returns the updated object
+    AlarmThreshold result = alarmThresholdService.updateThreshold(updatedThreshold);
+    assertNotNull(result, "Updated threshold should not be null");
+    assertEquals(
+        new BigDecimal("200.0"),
+        result.getThresholdValue(),
+        "Threshold value should be updated to 200.0");
 
     verify(alarmThresholdRepository).findByStationIdAndCsqAndParameter("240709", "31", "v1");
     verify(alarmThresholdRepository).save(any(AlarmThreshold.class));
@@ -86,7 +88,7 @@ class AlarmThresholdServiceImplTest {
 
   @Test
   void testExists() {
-    // When repository returns a present Optional, exists() should return true.
+    // When repository returns present Optional, exists() should return true.
     when(alarmThresholdRepository.findByStationIdAndCsqAndParameter("240709", "31", "v1"))
         .thenReturn(Optional.of(threshold));
     assertTrue(alarmThresholdService.exists("240709", "31", "v1"));
@@ -99,7 +101,6 @@ class AlarmThresholdServiceImplTest {
 
   @Test
   void testSaveNewThreshold() {
-    // When saving a new threshold, repository should return the saved object.
     when(alarmThresholdRepository.save(any(AlarmThreshold.class))).thenReturn(threshold);
     AlarmThreshold saved = alarmThresholdService.saveNewThreshold(threshold);
     assertNotNull(saved);

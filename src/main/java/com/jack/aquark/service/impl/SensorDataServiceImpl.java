@@ -52,21 +52,18 @@ public class SensorDataServiceImpl implements SensorDataService {
       value = {"sensorData", "hourlyAggregation"},
       allEntries = true)
   public void fetchAndSaveSensorData(String apiUrl) {
-    try {
-      // Fetch the wrapper from the external URL
-      RawDataWrapperDto wrapper = fetchRawDataFromUrl(apiUrl);
-      if (wrapper == null || wrapper.getRaw() == null || wrapper.getRaw().isEmpty()) {
-        log.warn("No raw sensor data found in the response from URL: {}", apiUrl);
-        return;
-      }
-      // Iterate raw items
-      for (RawDataItemDto item : wrapper.getRaw()) {
-        processRawItem(item);
-      }
-      log.info("Completed fetching & storing raw sensor data from {}", apiUrl);
-    } catch (Exception e) {
-      log.error("Error fetching/saving sensor data from URL: {}", apiUrl, e);
+    RawDataWrapperDto wrapper = fetchRawDataFromUrl(apiUrl);
+
+    if (wrapper == null || wrapper.getRaw() == null || wrapper.getRaw().isEmpty()) {
+      log.warn("No raw sensor data found in the response from URL: {}", apiUrl);
+      return;
     }
+
+    for (RawDataItemDto item : wrapper.getRaw()) {
+      processRawItem(item);
+    }
+
+    log.info("Completed fetching & storing raw sensor data from {}", apiUrl);
   }
 
   private void processRawItem(RawDataItemDto item) {
@@ -80,19 +77,23 @@ public class SensorDataServiceImpl implements SensorDataService {
             "Duplicate data. Skipping stationId={}, obsTime={}, csq={}", stationId, obsTime, csq);
         return;
       }
-      // Create & save main sensor data
+      // Parse main sensor data
       SensorData data = parseSensorData(item, obsTime);
+
       if (data == null) {
         log.warn("Sensor data was null for item: {}", item);
         return;
       }
+
       sensorDataRepository.save(data);
-      // Create & save temp sensor data (for aggregator usage)
+      // Parse temporary sensor data for aggregation
       TempSensorData tempData = parseTempSensorData(item, obsTime);
+
       if (tempData == null) {
         log.warn("Temp sensor data was null for item: {}", item);
         return;
       }
+
       tempSensorDataRepository.save(tempData);
     } catch (Exception e) {
       log.error("Error processing raw item: {}", item, e);
@@ -102,10 +103,12 @@ public class SensorDataServiceImpl implements SensorDataService {
   RawDataWrapperDto fetchRawDataFromUrl(String url) {
     RestTemplate restTemplate = new RestTemplate();
     ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+
     if (!response.getStatusCode().is2xxSuccessful()) {
       log.error("Failed to fetch data from {}, HTTP status: {}", url, response.getStatusCode());
       throw new DataFetchException("Failed fetching data from " + url);
     }
+
     try {
       return objectMapper.readValue(response.getBody(), RawDataWrapperDto.class);
     } catch (Exception e) {
@@ -114,7 +117,7 @@ public class SensorDataServiceImpl implements SensorDataService {
     }
   }
 
-  // Extract common sensor value reading into a helper method
+  // Helper: Extract common sensor values from RawDataItemDto.Sensor
   private SensorValues extractSensorValues(RawDataItemDto.Sensor sensor) {
     SensorValues values = new SensorValues();
 
@@ -127,24 +130,31 @@ public class SensorDataServiceImpl implements SensorDataService {
       values.v6 = sensor.getVolt().getV6();
       values.v7 = sensor.getVolt().getV7();
     }
+
     if (sensor.getStickTxRh() != null) {
       values.rh = sensor.getStickTxRh().getRh();
       values.tx = sensor.getStickTxRh().getTx();
     }
+
     if (sensor.getUltrasonicLevel() != null) {
       values.echo = sensor.getUltrasonicLevel().getEcho();
     }
+
     if (sensor.getWaterSpeedAquark() != null) {
       values.speed = sensor.getWaterSpeedAquark().getSpeed();
     }
+
     return values;
   }
 
+  // Parse main SensorData from raw item
   private SensorData parseSensorData(RawDataItemDto item, LocalDateTime obsTime) {
     RawDataItemDto.Sensor sensor = item.getSensor();
+
     if (sensor == null) {
       return null;
     }
+
     SensorValues values = extractSensorValues(sensor);
     return SensorData.builder()
         .stationId(item.getStationId())
@@ -165,11 +175,14 @@ public class SensorDataServiceImpl implements SensorDataService {
         .build();
   }
 
+  // Parse TempSensorData (for aggregator usage) from raw item
   private TempSensorData parseTempSensorData(RawDataItemDto item, LocalDateTime obsTime) {
     RawDataItemDto.Sensor sensor = item.getSensor();
+
     if (sensor == null) {
       return null;
     }
+
     SensorValues values = extractSensorValues(sensor);
     return TempSensorData.builder()
         .stationId(item.getStationId())
@@ -211,7 +224,7 @@ public class SensorDataServiceImpl implements SensorDataService {
   @Override
   @Cacheable(
       value = "hourlyAggregation",
-      key = "#start.toLocalDate().toString() + '_' + #end.toLocalDate().toString()")
+      key = "#start.toLocalDate().toString() + '-' + #end.toLocalDate().toString()")
   public List<HourlyAggregation> getHourlyAverage(LocalDateTime start, LocalDateTime end) {
     LocalDate startDate = start.toLocalDate();
     LocalDate endDate = end.toLocalDate();

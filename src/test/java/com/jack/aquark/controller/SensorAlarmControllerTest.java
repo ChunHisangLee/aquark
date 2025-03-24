@@ -5,10 +5,9 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.jack.aquark.constant.MessagesConstants;
 import com.jack.aquark.dto.AlarmCheckResult;
 import com.jack.aquark.dto.AlarmDetail;
-import com.jack.aquark.service.AlarmCheckingService;
+import com.jack.aquark.service.SensorAlarmService;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -23,7 +22,7 @@ class SensorAlarmControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
-  @MockBean private AlarmCheckingService alarmCheckingService;
+  @MockBean private SensorAlarmService sensorAlarmService;
 
   @Test
   void testCheckSensorAlarms_Success() throws Exception {
@@ -40,7 +39,7 @@ class SensorAlarmControllerTest {
     AlarmCheckResult result =
         new AlarmCheckResult(1, List.of(detail), "Alarm check completed. 1 alarms triggered.");
 
-    when(alarmCheckingService.checkSensorAlarms(anyInt())).thenReturn(result);
+    when(sensorAlarmService.checkSensorAlarms(anyInt())).thenReturn(result);
 
     mockMvc
         .perform(
@@ -59,18 +58,17 @@ class SensorAlarmControllerTest {
 
   @Test
   void testCheckSensorAlarms_Failure() throws Exception {
-    // Simulate an exception thrown by the service.
-    when(alarmCheckingService.checkSensorAlarms(anyInt()))
-        .thenThrow(new RuntimeException("Service error"));
+    // 模擬 service 拋出例外
+    when(sensorAlarmService.checkSensorAlarms(anyInt()))
+            .thenThrow(new RuntimeException("Service error"));
 
-    mockMvc
-        .perform(
-            get("/api/alarm/check")
-                .param("intervalMinutes", "60")
-                .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isInternalServerError())
-        // Error response is wrapped under "error"
-        .andExpect(jsonPath("$.error.errorCode").value(MessagesConstants.STATUS_500))
-        .andExpect(jsonPath("$.error.errorMessage").value("Error fetching alarms statistics"));
+    mockMvc.perform(
+                    get("/api/alarm/check")
+                            .param("intervalMinutes", "60")
+                            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isInternalServerError())
+            // 根據 ApiResponseDto.error 回傳的結構，直接驗證 errorCode 與 errorMessage 屬性
+            .andExpect(jsonPath("$.errorCode").value("INTERNAL_SERVER_ERROR"))
+            .andExpect(jsonPath("$.errorMessage").value("Service error"));
   }
 }

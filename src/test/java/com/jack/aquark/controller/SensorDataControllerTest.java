@@ -4,8 +4,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jack.aquark.entity.HourlyAggregation;
 import com.jack.aquark.entity.SensorData;
 import com.jack.aquark.service.AggregationService;
@@ -24,8 +22,6 @@ import org.springframework.test.web.servlet.MockMvc;
 class SensorDataControllerTest {
 
   @Autowired private MockMvc mockMvc;
-
-  @Autowired private ObjectMapper objectMapper;
 
   @MockBean private SensorDataService sensorDataService;
 
