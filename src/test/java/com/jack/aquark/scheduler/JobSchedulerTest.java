@@ -9,16 +9,16 @@ import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class JobSchedulerTest {
+class JobSchedulerTest {
 
-    private SensorDataService sensorDataService;
+  private SensorDataService sensorDataService;
   private AggregationService aggregationService;
   private JobScheduler jobScheduler;
 
   @BeforeEach
   public void setup() {
     // Mock the dependent beans
-      ApiUrlProperties apiUrlProperties = mock(ApiUrlProperties.class);
+    ApiUrlProperties apiUrlProperties = mock(ApiUrlProperties.class);
     sensorDataService = mock(SensorDataService.class);
     aggregationService = mock(AggregationService.class);
 
@@ -31,7 +31,7 @@ public class JobSchedulerTest {
   }
 
   @Test
-  public void testFetchAndAggregate() {
+  void testFetchAndAggregate() {
     // Directly invoke the scheduled method (without waiting for the cron trigger)
     jobScheduler.fetchAndAggregate();
 

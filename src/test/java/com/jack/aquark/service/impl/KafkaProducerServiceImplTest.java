@@ -7,7 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.kafka.core.KafkaTemplate;
 
-public class KafkaProducerServiceImplTest {
+class KafkaProducerServiceImplTest {
 
   private KafkaTemplate<String, Object> kafkaTemplate;
   private KafkaProducerServiceImpl kafkaProducerService;
@@ -22,7 +22,7 @@ public class KafkaProducerServiceImplTest {
   }
 
   @Test
-  public void testSendAlarmEvent() {
+  void testSendAlarmEvent() {
     // Create a sample AlarmEvent instance and set properties as needed
     AlarmEvent event = new AlarmEvent();
     event.setStationId("station1");
