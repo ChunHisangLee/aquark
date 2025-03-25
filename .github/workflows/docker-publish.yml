@@ -17,8 +17,25 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
+    # Spin up a PostgreSQL container for the tests
+    services:
+      db:
+        image: postgres:15
+        env:
+          POSTGRES_USER: myuser
+          POSTGRES_PASSWORD: mypass
+          POSTGRES_DB: aquark_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U myuser -d aquark_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     permissions:
       contents: read
       packages: write
@@ -29,18 +46,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Set up JDK 21 since Aquark uses Java 21.
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      # Build the Maven package so the artifact exists.
-      - name: Build Maven package
-        run: mvn clean package --file pom.xml
-
-      # Cache Maven local repository for faster builds.
+      # Cache Maven local repository for faster builds
       - name: Cache Maven local repository
         uses: actions/cache@v3
         with:
@@ -49,6 +55,33 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # Wait until PostgreSQL is up (service container is healthy)
+      - name: Wait for DB
+        run: |
+          for i in {1..10}; do
+            if pg_isready -h localhost -p 5432 -U myuser; then
+              echo "Postgres is ready!"
+              break
+            else
+              echo "Waiting for Postgres..."
+              sleep 3
+            fi
+          done
+
+      # Build + run tests (which includes Flyway migrations) using the DB
+      - name: Build and test with Maven
+        run: mvn clean package --file pom.xml
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/aquark_test
+          SPRING_DATASOURCE_USERNAME: myuser
+          SPRING_DATASOURCE_PASSWORD: mypass
+
       # Install cosign for image signing (skip on pull_request)
       - name: Install cosign
         if: github.event_name != 'pull_request'
@@ -56,11 +89,11 @@ jobs:
         with:
           cosign-release: 'v2.2.4'
 
-      # Set up Docker Buildx to build multi-platform images and export cache.
+      # Set up Docker Buildx to build multi-platform images and export cache
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Log into the container registry (skip on pull_request).
+      # Log into the container registry (skip on pull_request)
       - name: Log into registry ${{ env.REGISTRY }}
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
@@ -69,15 +102,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Extract Docker metadata (tags, labels) from the repository/commit.
+      # Extract Docker metadata (tags, labels) from the repository/commit
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      # Build and push the Docker image using Buildx.
-      # Note: The Dockerfile should copy the artifact at "target/aquark-0.0.1-SNAPSHOT.jar".
+      # Build and push the Docker image using Buildx
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@v5
@@ -89,7 +121,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Sign the published Docker image digest (skip on pull_request).
+      # Sign the published Docker image digest (skip on pull_request)
       - name: Sign the published Docker image
         if: ${{ github.event_name != 'pull_request' }}
         env:
