@@ -14,8 +14,10 @@ import com.jack.aquark.service.AggregationService;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
@@ -158,7 +160,14 @@ public class AggregationServiceImpl implements AggregationService {
       return;
     }
 
-    // Group by (stationId|date|hour|csq)
+    // For each record, ensure its time category is set
+    tempData.forEach(
+        tsd -> {
+          String category = determineTimeCategory(tsd.getObsTime());
+          tsd.setTimeCategory(category);
+        });
+
+    // Group by (stationId | date | hour | csq | timeCategory)
     Map<String, List<TempSensorData>> grouped =
         tempData.stream()
             .collect(
@@ -170,18 +179,21 @@ public class AggregationServiceImpl implements AggregationService {
                             + "|"
                             + tsd.getObsTime().getHour()
                             + "|"
-                            + tsd.getCsq()));
+                            + tsd.getCsq()
+                            + "|"
+                            + tsd.getTimeCategory()));
 
     for (var entry : grouped.entrySet()) {
       String key = entry.getKey();
       List<TempSensorData> groupRecords = entry.getValue();
 
-      // Parse the key
+      // Parse the key parts
       String[] parts = key.split("\\|");
       String stationId = parts[0];
       LocalDate obsDate = LocalDate.parse(parts[1]);
       int obsHour = Integer.parseInt(parts[2]);
       String csq = parts[3];
+      String timeCategory = parts[4];
 
       // Build an HourlyAggregation object
       HourlyAggregation agg = new HourlyAggregation();
@@ -189,6 +201,7 @@ public class AggregationServiceImpl implements AggregationService {
       agg.setObsDate(obsDate);
       agg.setObsHour(obsHour);
       agg.setCsq(csq);
+      agg.setTimeCategory(timeCategory);
 
       // Process each sensor mapping for sum and average
       for (HourlySensorMapping map : HOURLY_FIELDS) {
@@ -218,11 +231,12 @@ public class AggregationServiceImpl implements AggregationService {
 
   public void saveOrUpdateHourlyAggregation(HourlyAggregation aggregation) {
     Optional<HourlyAggregation> optExisting =
-        hourlyAggregationRepository.findByStationIdAndObsDateAndObsHourAndCsq(
+        hourlyAggregationRepository.findByStationIdAndObsDateAndObsHourAndCsqAndTimeCategory(
             aggregation.getStationId(),
             aggregation.getObsDate(),
             aggregation.getObsHour(),
-            aggregation.getCsq());
+            aggregation.getCsq(),
+            aggregation.getTimeCategory());
 
     if (optExisting.isPresent()) {
       HourlyAggregation existing = optExisting.get();
@@ -253,19 +267,21 @@ public class AggregationServiceImpl implements AggregationService {
       existing.setSpeedAvgValue(aggregation.getSpeedAvgValue());
       hourlyAggregationRepository.save(existing);
       log.debug(
-          "Updated existing HourlyAggregation row for station={}, date={}, hour={}, csq={}",
+          "Updated existing HourlyAggregation row for station={}, date={}, hour={}, csq={}, category={}",
           existing.getStationId(),
           existing.getObsDate(),
           existing.getObsHour(),
-          existing.getCsq());
+          existing.getCsq(),
+          existing.getTimeCategory());
     } else {
       hourlyAggregationRepository.save(aggregation);
       log.debug(
-          "Inserted new HourlyAggregation for station={}, date={}, hour={}, csq={}",
+          "Inserted new HourlyAggregation for station={}, date={}, hour={}, csq={}, category={}",
           aggregation.getStationId(),
           aggregation.getObsDate(),
           aggregation.getObsHour(),
-          aggregation.getCsq());
+          aggregation.getCsq(),
+          aggregation.getTimeCategory());
     }
   }
 
@@ -279,28 +295,37 @@ public class AggregationServiceImpl implements AggregationService {
       return;
     }
 
-    // Group by (stationId|obsDate|csq)
+    // Group by (stationId | obsDate | csq | timeCategory)
     Map<String, List<HourlyAggregation>> grouped =
         allHourly.stream()
             .collect(
                 Collectors.groupingBy(
-                    ha -> ha.getStationId() + "|" + ha.getObsDate() + "|" + ha.getCsq()));
+                    ha ->
+                        ha.getStationId()
+                            + "|"
+                            + ha.getObsDate()
+                            + "|"
+                            + ha.getCsq()
+                            + "|"
+                            + ha.getTimeCategory()));
 
     for (var entry : grouped.entrySet()) {
       String[] parts = entry.getKey().split("\\|");
       String stationId = parts[0];
       LocalDate obsDate = LocalDate.parse(parts[1]);
       String csq = parts[2];
+      String timeCategory = parts[3];
 
       DailyAggregation dailyAgg =
           dailyAggregationRepository
-              .findByStationIdAndObsDateAndCsq(stationId, obsDate, csq)
+              .findByStationIdAndObsDateAndCsqAndTimeCategory(stationId, obsDate, csq, timeCategory)
               .orElseGet(
                   () -> {
                     DailyAggregation d = new DailyAggregation();
                     d.setStationId(stationId);
                     d.setObsDate(obsDate);
                     d.setCsq(csq);
+                    d.setTimeCategory(timeCategory);
                     return d;
                   });
 
@@ -326,7 +351,11 @@ public class AggregationServiceImpl implements AggregationService {
 
       dailyAggregationRepository.save(dailyAgg);
       log.debug(
-          "Upserted DailyAggregation for station={}, date={}, csq={}", stationId, obsDate, csq);
+          "Upserted DailyAggregation for station={}, date={}, csq={}, category={}",
+          stationId,
+          obsDate,
+          csq,
+          timeCategory);
     }
     log.info("Daily aggregation complete. Processed {} grouped day-sets.", grouped.size());
   }
@@ -344,9 +373,35 @@ public class AggregationServiceImpl implements AggregationService {
   }
 
   @Override
-  @Cacheable(value = "sensorData", key = "#start.toString() + '_' + #end.toString()")
+  @Cacheable(value = "sensorData", key = "#start.toString() + '-' + #end.toString()")
   public List<SensorData> getSensorDataByTimeRange(LocalDateTime start, LocalDateTime end) {
     log.info("Querying DB for sensor data between {} and {}", start, end);
     return sensorDataRepository.findAllByObsTimeBetweenOrderByObsTimeAsc(start, end);
+  }
+
+  /**
+   * Determine the time category ("PEAK" or "OFFPEAK") based on the observation time.
+   *
+   * <p>Criteria: - Monday to Wednesday: PEAK if between 07:30 (inclusive) and 17:30 (exclusive),
+   * OFFPEAK otherwise. - Thursday and Friday: All day is considered PEAK. - Saturday and Sunday:
+   * All day is considered OFFPEAK.
+   */
+  private String determineTimeCategory(LocalDateTime obsTime) {
+    DayOfWeek day = obsTime.getDayOfWeek();
+    LocalTime time = obsTime.toLocalTime();
+    LocalTime peakStart = LocalTime.of(7, 30);
+    LocalTime peakEnd = LocalTime.of(17, 30);
+
+    if (day == DayOfWeek.THURSDAY || day == DayOfWeek.FRIDAY) {
+      return "PEAK";
+    } else if (day == DayOfWeek.MONDAY || day == DayOfWeek.TUESDAY || day == DayOfWeek.WEDNESDAY) {
+      if (!time.isBefore(peakStart) && time.isBefore(peakEnd)) {
+        return "PEAK";
+      } else {
+        return "OFFPEAK";
+      }
+    } else { // SATURDAY or SUNDAY
+      return "OFFPEAK";
+    }
   }
 }

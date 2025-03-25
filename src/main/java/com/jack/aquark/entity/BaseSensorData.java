@@ -27,6 +27,9 @@ public abstract class BaseSensorData {
   @Column(name = "csq", nullable = false)
   private String csq;
 
+  @Column(name = "time_category", nullable = false)
+  private String timeCategory;
+
   @Column(name = "v1")
   private BigDecimal v1;
 
@@ -62,4 +65,11 @@ public abstract class BaseSensorData {
 
   @Column(name = "speed")
   private BigDecimal speed;
+
+  @PrePersist
+  protected void prePersist() {
+    if (this.timeCategory == null) {
+      this.timeCategory = "OFFPEAK";
+    }
+  }
 }

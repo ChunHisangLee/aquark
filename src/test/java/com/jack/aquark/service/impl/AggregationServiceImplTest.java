@@ -41,18 +41,19 @@ class AggregationServiceImplTest {
     aggregationService.aggregateHourlyData();
 
     verify(tempSensorDataRepository).findAll();
+    // Should not call save as there is no data
     verify(hourlyAggregationRepository, never()).save(any(HourlyAggregation.class));
   }
 
   @Test
   void testAggregateHourlyData_WithData() {
-    // Create two TempSensorData records in the same group:
+    // Create two TempSensorData records in the same group.
     TempSensorData temp1 = new TempSensorData();
     temp1.setStationId("240627");
     temp1.setObsTime(LocalDateTime.of(2025, 3, 11, 10, 15));
     temp1.setCsq("31");
     temp1.setV1(new BigDecimal("10.0"));
-    // (Other sensor fields can be left null if not mapped)
+    // timeCategory is not set explicitly; it will be determined in aggregateHourlyData()
 
     TempSensorData temp2 = new TempSensorData();
     temp2.setStationId("240627");
@@ -62,8 +63,9 @@ class AggregationServiceImplTest {
 
     when(tempSensorDataRepository.findAll()).thenReturn(Arrays.asList(temp1, temp2));
     // When checking for an existing aggregation, return empty to force an insert.
-    when(hourlyAggregationRepository.findByStationIdAndObsDateAndObsHourAndCsq(
-            anyString(), any(LocalDate.class), anyInt(), anyString()))
+    // Note: using the new repository method with timeCategory parameter.
+    when(hourlyAggregationRepository.findByStationIdAndObsDateAndObsHourAndCsqAndTimeCategory(
+            anyString(), any(LocalDate.class), anyInt(), anyString(), anyString()))
         .thenReturn(Optional.empty());
 
     aggregationService.aggregateHourlyData();
@@ -75,11 +77,12 @@ class AggregationServiceImplTest {
 
   @Test
   void testAggregateDailyData_WithData() {
-    // Create two hourly aggregations for the same station/date/csq.
+    // Create two hourly aggregations for the same station/date/csq/timeCategory.
     HourlyAggregation ha1 = new HourlyAggregation();
     ha1.setStationId("240708");
     ha1.setObsDate(LocalDate.of(2025, 3, 11));
     ha1.setCsq("31");
+    ha1.setTimeCategory("PEAK"); // Set time category
     ha1.setV1SumValue(new BigDecimal("10.0"));
     ha1.setV1AvgValue(new BigDecimal("10.0"));
 
@@ -87,12 +90,14 @@ class AggregationServiceImplTest {
     ha2.setStationId("240708");
     ha2.setObsDate(LocalDate.of(2025, 3, 11));
     ha2.setCsq("31");
+    ha2.setTimeCategory("PEAK"); // Set time category
     ha2.setV1SumValue(new BigDecimal("20.0"));
     ha2.setV1AvgValue(new BigDecimal("20.0"));
 
     when(hourlyAggregationRepository.findAll()).thenReturn(Arrays.asList(ha1, ha2));
-    when(dailyAggregationRepository.findByStationIdAndObsDateAndCsq(
-            anyString(), any(LocalDate.class), anyString()))
+    // Use the new repository method with timeCategory parameter for daily aggregation.
+    when(dailyAggregationRepository.findByStationIdAndObsDateAndCsqAndTimeCategory(
+            anyString(), any(LocalDate.class), anyString(), anyString()))
         .thenReturn(Optional.empty());
 
     aggregationService.aggregateDailyData();

@@ -58,7 +58,6 @@ class SensorAlarmControllerTest {
 
   @Test
   void testCheckSensorAlarms_Failure() throws Exception {
-    // 模擬 service 拋出例外
     when(sensorAlarmService.checkSensorAlarms(anyInt()))
             .thenThrow(new RuntimeException("Service error"));
 
@@ -67,7 +66,6 @@ class SensorAlarmControllerTest {
                             .param("intervalMinutes", "60")
                             .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isInternalServerError())
-            // 根據 ApiResponseDto.error 回傳的結構，直接驗證 errorCode 與 errorMessage 屬性
             .andExpect(jsonPath("$.errorCode").value("INTERNAL_SERVER_ERROR"))
             .andExpect(jsonPath("$.errorMessage").value("Service error"));
   }

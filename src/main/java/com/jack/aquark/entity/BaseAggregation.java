@@ -33,6 +33,9 @@ public abstract class BaseAggregation {
   @Column(name = "csq", nullable = false)
   private String csq;
 
+  @Column(name = "time_category", nullable = false)
+  private String timeCategory;
+
   @Column(name = "v1_sum_value")
   private BigDecimal v1SumValue;
 
@@ -93,10 +96,10 @@ public abstract class BaseAggregation {
   @Column(name = "echo_avg_value")
   private BigDecimal echoAvgValue;
 
-  @Column(name = "rainD_sum_value")
+  @Column(name = "rain_d_sum_value")
   private BigDecimal rainDSumValue;
 
-  @Column(name = "rainD_avg_value")
+  @Column(name = "rain_d_avg_value")
   private BigDecimal rainDAvgValue;
 
   @Column(name = "speed_sum_value")
@@ -104,4 +107,11 @@ public abstract class BaseAggregation {
 
   @Column(name = "speed_avg_value")
   private BigDecimal speedAvgValue;
+
+  @PrePersist
+  protected void prePersist() {
+    if (this.timeCategory == null) {
+      this.timeCategory = "OFFPEAK";
+    }
+  }
 }

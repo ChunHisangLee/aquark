@@ -9,6 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface DailyAggregationRepository extends JpaRepository<DailyAggregation, Long> {
   List<DailyAggregation> findByObsDateBetween(LocalDate start, LocalDate end);
 
-  Optional<DailyAggregation> findByStationIdAndObsDateAndCsq(
-      String stationId, LocalDate obsDate, String csq);
+  Optional<DailyAggregation> findByStationIdAndObsDateAndCsqAndTimeCategory(
+      String stationId, LocalDate obsDate, String csq, String timeCategory);
 }
