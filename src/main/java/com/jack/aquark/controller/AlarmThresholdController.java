@@ -13,10 +13,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -27,17 +25,17 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/alarm")
 @RequiredArgsConstructor
-@Slf4j
 @Validated
-public class AlarmThresholdController {
+public class AlarmThresholdController extends BaseController {
+
   private final AlarmThresholdService alarmThresholdService;
 
   @Operation(
       summary = "Retrieve Alarm Threshold(s)",
       description =
-          "Retrieve the alarm threshold configuration data. If stationId, CSQ, and sensor parameter "
-              + "are provided, the response is filtered to return only the matching threshold. If any "
-              + "parameter is missing, all alarm thresholds are returned.",
+          "Retrieve the alarm threshold configuration data. If stationId, CSQ, and sensor "
+              + "parameter are provided, the response is filtered to return only the matching threshold. "
+              + "If any parameter is missing, all alarm thresholds are returned.",
       responses = {
         @ApiResponse(
             responseCode = MessagesConstants.STATUS_200,
@@ -62,10 +60,13 @@ public class AlarmThresholdController {
 
     if (stationId != null && csq != null && parameter != null) {
       AlarmThreshold threshold = alarmThresholdService.getThreshold(stationId, csq, parameter);
-      return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(List.of(threshold)));
+      if (threshold == null) {
+        return respondError("/api/alarm/get", HttpStatus.NOT_FOUND, "No threshold found.");
+      }
+      return respondOK(List.of(threshold));
     } else {
       List<AlarmThreshold> thresholds = alarmThresholdService.getAllThresholds();
-      return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(thresholds));
+      return respondOK(thresholds);
     }
   }
 
@@ -88,7 +89,7 @@ public class AlarmThresholdController {
       @Valid @RequestBody AlarmThreshold threshold) {
 
     AlarmThreshold updated = alarmThresholdService.updateThreshold(threshold);
-    return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(updated));
+    return respondOK(updated);
   }
 
   @Operation(
@@ -108,19 +109,14 @@ public class AlarmThresholdController {
   @PostMapping("/add")
   public ResponseEntity<ApiResponseDto<AlarmThreshold>> addThreshold(
       @Valid @RequestBody AlarmThreshold threshold) {
-
     if (alarmThresholdService.exists(
         threshold.getStationId(), threshold.getCsq(), threshold.getParameter())) {
-      return ResponseEntity.status(HttpStatus.CONFLICT)
-          .body(
-              ApiResponseDto.error(
-                  new ErrorResponseDto(
-                      "/api/alarm/add",
-                      HttpStatus.CONFLICT,
-                      "Threshold already exists for the given station, CSQ, and sensor parameter.",
-                      LocalDateTime.now())));
+      return respondError(
+          "/api/alarm/add",
+          HttpStatus.CONFLICT,
+          "Threshold already exists for the given station, CSQ, and sensor parameter.");
     }
     AlarmThreshold created = alarmThresholdService.saveNewThreshold(threshold);
-    return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponseDto.success(created));
+    return respondCreated(created);
   }
 }

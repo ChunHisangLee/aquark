@@ -17,9 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -30,9 +28,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/sensor")
 @AllArgsConstructor
-@Slf4j
 @Validated
-public class SensorDataController {
+public class SensorDataController extends BaseController {
 
   private final SensorDataService sensorDataService;
   private final AggregationService aggregationService;
@@ -65,14 +62,16 @@ public class SensorDataController {
           @RequestParam
           @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime end) {
+
     List<SensorData> data = aggregationService.getSensorDataByTimeRange(start, end);
-    return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(data));
+    return respondOK(data);
   }
 
   @Operation(
       summary = "Get Hourly Statistics",
       description =
-          "Retrieve aggregated hourly sensor data statistics for the specified date range. Date-time format: yyyy-MM-dd HH:mm:ss.",
+          "Retrieve aggregated hourly sensor data statistics for the specified date range. "
+              + "Date-time format: yyyy-MM-dd HH:mm:ss.",
       responses = {
         @ApiResponse(
             responseCode = MessagesConstants.STATUS_200,
@@ -97,8 +96,9 @@ public class SensorDataController {
           @RequestParam
           @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime end) {
+
     List<HourlyAggregation> stats = sensorDataService.getHourlyAverage(start, end);
-    return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(stats));
+    return respondOK(stats);
   }
 
   @Operation(
@@ -129,14 +129,17 @@ public class SensorDataController {
           @RequestParam
           @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime end) {
+
     List<DailyAggregation> stats = sensorDataService.getDailyAverage(start, end);
-    return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(stats));
+    return respondOK(stats);
   }
 
   @Operation(
       summary = "Get Peak-Time Data",
       description =
-          "Retrieve sensor data for the specified period that falls within peak hours (defined as 07:30 to 17:30 on weekdays, all day on Thursdays and Fridays, and off on weekends). Date-time format: yyyy-MM-dd HH:mm:ss.",
+          "Retrieve sensor data for the specified period that falls within peak hours "
+              + "(defined as 07:30 to 17:30 on weekdays, all day on Thursdays and Fridays, "
+              + "and off on weekends). Date-time format: yyyy-MM-dd HH:mm:ss.",
       responses = {
         @ApiResponse(
             responseCode = MessagesConstants.STATUS_200,
@@ -161,14 +164,16 @@ public class SensorDataController {
           @RequestParam
           @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime end) {
+
     List<SensorData> result = sensorDataService.getPeakTimeData(start, end);
-    return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(result));
+    return respondOK(result);
   }
 
   @Operation(
       summary = "Get Off-Peak Data",
       description =
-          "Retrieve sensor data for the specified period that falls outside peak hours. Date-time format: yyyy-MM-dd HH:mm:ss.",
+          "Retrieve sensor data for the specified period that falls outside peak hours. "
+              + "Date-time format: yyyy-MM-dd HH:mm:ss.",
       responses = {
         @ApiResponse(
             responseCode = MessagesConstants.STATUS_200,
@@ -193,7 +198,8 @@ public class SensorDataController {
           @RequestParam
           @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
           LocalDateTime end) {
+
     List<SensorData> result = sensorDataService.getOffPeakTimeData(start, end);
-    return ResponseEntity.status(HttpStatus.OK).body(ApiResponseDto.success(result));
+    return respondOK(result);
   }
 }
