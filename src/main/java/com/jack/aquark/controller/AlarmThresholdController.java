@@ -84,7 +84,7 @@ public class AlarmThresholdController extends BaseController {
             description = "Update operation failed",
             content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
       })
-  @PostMapping("/update")
+  @PutMapping("/update")
   public ResponseEntity<ApiResponseDto<AlarmThreshold>> updateThreshold(
       @Valid @RequestBody AlarmThreshold threshold) {
 

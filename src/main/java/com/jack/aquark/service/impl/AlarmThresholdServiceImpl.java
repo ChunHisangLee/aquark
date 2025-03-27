@@ -75,7 +75,7 @@ public class AlarmThresholdServiceImpl implements AlarmThresholdService {
   @Override
   @CachePut(
       value = "thresholds",
-      key = "#result.stationId + '_' + #result.csq + '_' + #result.parameter")
+      key = "#result.stationId + '-' + #result.csq + '-' + #result.parameter")
   public AlarmThreshold saveNewThreshold(AlarmThreshold threshold) {
     return alarmThresholdRepository.save(threshold);
   }
